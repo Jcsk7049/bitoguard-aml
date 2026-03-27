@@ -173,34 +173,39 @@ if page == "📊 總覽儀表板":
 
     # ── KPI 指標卡片 ──────────────────────────────────────────────────────────
     c1, c2, c3, c4, c5, c6 = st.columns(6)
+
+    def _pct_val(v):
+        """大數字 + 小 % 符號，確保同行不換行"""
+        return f'<span style="font-size:30px;font-weight:900;line-height:1">{v:.1f}</span><span style="font-size:18px;font-weight:700">%</span>'
+
     with c1:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">✅ 準確度 (Accuracy)</div>
-            <div class="metric-value">{_acc*100:.1f}%</div>
+            <div class="metric-value" style="font-size:inherit">{_pct_val(_acc*100)}</div>
             <div class="metric-sub">整體預測正確比例</div>
         </div>""", unsafe_allow_html=True)
     with c2:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">🎯 AUC (排序能力)</div>
-            <div class="metric-value">{m['auc']*100:.1f}%</div>
+            <div class="metric-value" style="font-size:inherit">{_pct_val(m['auc']*100)}</div>
             <div class="metric-sub">ROC 曲線下面積</div>
         </div>""", unsafe_allow_html=True)
     with c3:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">⚖️ F1-Score (綜合)</div>
-            <div class="metric-value">{m['f1']*100:.1f}%</div>
+            <div class="metric-value" style="font-size:inherit">{_pct_val(m['f1']*100)}</div>
             <div class="metric-sub">P={m['precision']*100:.1f}% R={m['recall']*100:.1f}%</div>
         </div>""", unsafe_allow_html=True)
     with c4:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">🎯 Precision (精確率)</div>
-            <div class="metric-value">{m['precision']*100:.1f}%</div>
+            <div class="metric-value" style="font-size:inherit">{_pct_val(m['precision']*100)}</div>
             <div class="metric-sub">預測黑名單中真正是的比例</div>
         </div>""", unsafe_allow_html=True)
     with c5:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">🔍 Recall (召回率)</div>
-            <div class="metric-value">{m['recall']*100:.1f}%</div>
+            <div class="metric-value" style="font-size:inherit">{_pct_val(m['recall']*100)}</div>
             <div class="metric-sub">實際黑名單被抓到的比例</div>
         </div>""", unsafe_allow_html=True)
     with c6:
