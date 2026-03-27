@@ -148,9 +148,9 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(f"**模型：** LightGBM")
     st.markdown(f"**訓練日期：** 2026-03-26")
-    st.markdown(f"**OOF F1：** `{m['f1']*100:.2f}%`")
-    st.markdown(f"**AUC：** `{m['auc']*100:.2f}%`")
-    st.markdown(f"**準確度：** `{m.get('accuracy', 0.9564)*100:.2f}%`")
+    st.markdown(f"**OOF F1：** `{m['f1']*100:.1f}%`")
+    st.markdown(f"**AUC：** `{m['auc']*100:.1f}%`")
+    st.markdown(f"**準確度：** `{m.get('accuracy', 0.9564)*100:.1f}%`")
 
     if st.button("🔄 重新整理快取"):
         st.cache_data.clear()
@@ -176,31 +176,31 @@ if page == "📊 總覽儀表板":
     with c1:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">✅ 準確度 (Accuracy)</div>
-            <div class="metric-value">{_acc*100:.2f}%</div>
+            <div class="metric-value">{_acc*100:.1f}%</div>
             <div class="metric-sub">整體預測正確比例</div>
         </div>""", unsafe_allow_html=True)
     with c2:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">🎯 AUC (排序能力)</div>
-            <div class="metric-value">{m['auc']*100:.2f}%</div>
+            <div class="metric-value">{m['auc']*100:.1f}%</div>
             <div class="metric-sub">ROC 曲線下面積</div>
         </div>""", unsafe_allow_html=True)
     with c3:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">⚖️ F1-Score (綜合)</div>
-            <div class="metric-value">{m['f1']*100:.2f}%</div>
+            <div class="metric-value">{m['f1']*100:.1f}%</div>
             <div class="metric-sub">P={m['precision']*100:.1f}% R={m['recall']*100:.1f}%</div>
         </div>""", unsafe_allow_html=True)
     with c4:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">🎯 Precision (精確率)</div>
-            <div class="metric-value">{m['precision']*100:.2f}%</div>
+            <div class="metric-value">{m['precision']*100:.1f}%</div>
             <div class="metric-sub">預測黑名單中真正是的比例</div>
         </div>""", unsafe_allow_html=True)
     with c5:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">🔍 Recall (召回率)</div>
-            <div class="metric-value">{m['recall']*100:.2f}%</div>
+            <div class="metric-value">{m['recall']*100:.1f}%</div>
             <div class="metric-sub">實際黑名單被抓到的比例</div>
         </div>""", unsafe_allow_html=True)
     with c6:
@@ -248,7 +248,7 @@ if page == "📊 總覽儀表板":
         fold_fig.add_trace(go.Bar(name="F1-Score",  x=xs, y=[f["f1"]        for f in folds],
                                   marker_color="#55A868", opacity=0.85))
         fold_fig.add_hline(y=m["f1"], line_dash="dash", line_color="#55A868",
-                           annotation_text=f"OOF F1={m['f1']*100:.2f}%")
+                           annotation_text=f"OOF F1={m['f1']*100:.1f}%")
         fold_fig.update_layout(barmode="group", height=320,
                                 margin=dict(l=0, r=0, t=10, b=0),
                                 yaxis_range=[0, 0.6])
@@ -263,7 +263,7 @@ if page == "📊 總覽儀表板":
         ("②", "圖運算\n特徵工程", "#2d6a4f",
          "- BFS 資金跳轉跳數\n- Salting 超級節點\n- Feature Store 持久化"),
         ("③", "模型訓練\n& MLOps", "#7b2d8b",
-         f"- LightGBM (AUC={m['auc']*100:.2f}%)\n- 5-Fold CV (F1={m['f1']*100:.2f}%)\n- HPO 超參數優化"),
+         f"- LightGBM (AUC={m['auc']*100:.1f}%)\n- 5-Fold CV (F1={m['f1']*100:.1f}%)\n- HPO 超參數優化"),
         ("④", "AI 風險診斷\n& 自動響應", "#9b2335",
          "- PII Guard 三層保護\n- Claude 3.5 深度推理\n- 閉環回饋增量訓練"),
     ]
@@ -394,7 +394,7 @@ elif page == "🔍 用戶風險查詢":
                     "-" * 52,
                     f"用戶 ID      : {uid}",
                     f"風險等級     : {risk_label_text}",
-                    f"黑名單機率   : {prob*100:.2f}%",
+                    f"黑名單機率   : {prob*100:.1f}%",
                     f"決策門檻     : {thr:.2f}",
                     f"最終判定     : {'黑名單 (status=1)' if status == 1 else '正常 (status=0)'}",
                     "-" * 52,
@@ -544,8 +544,8 @@ elif page == "📈 模型評估":
         st.dataframe(
             fold_table.style.highlight_max(subset=["F1", "AUC"], color="#d5f5e3")
                             .highlight_min(subset=["F1", "AUC"], color="#fadbd8")
-                            .format({"Precision": "{:.2f}%", "Recall": "{:.2f}%",
-                                     "F1": "{:.2f}%", "AUC": "{:.2f}%"}),
+                            .format({"Precision": "{:.1f}%", "Recall": "{:.1f}%",
+                                     "F1": "{:.1f}%", "AUC": "{:.1f}%"}),
             use_container_width=True
         )
 
@@ -582,7 +582,7 @@ elif page == "📋 提交結果":
 
     col1, col2, col3 = st.columns(3)
     col1.metric("總用戶數",  f"{n_total:,}")
-    col2.metric("預測黑名單", f"{n_black:,}",  delta=f"{n_black/n_total*100:.2f}%")
+    col2.metric("預測黑名單", f"{n_black:,}",  delta=f"{n_black/n_total*100:.1f}%")
     col3.metric("預測正常",  f"{n_norm:,}")
 
     st.markdown("---")
