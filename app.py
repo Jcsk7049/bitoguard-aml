@@ -353,6 +353,75 @@ elif page == "🔍 用戶風險查詢":
                 gauge.update_layout(height=280, margin=dict(l=20, r=20, t=30, b=0))
                 st.plotly_chart(gauge, use_container_width=True)
 
+                # ── 生成風險書 ────────────────────────────────────────────────
+                import datetime
+                risk_label_text = {
+                    "🔴 極高風險":          "CRITICAL",
+                    "🟠 高風險（黑名單預測）": "HIGH",
+                    "🟡 中等風險":          "MEDIUM",
+                    "🟢 低風險（正常）":     "LOW",
+                }.get(risk_level, "UNKNOWN")
+
+                report_lines = [
+                    "=" * 52,
+                    "   BitoGuard AML — 用戶風險評估書",
+                    "=" * 52,
+                    f"生成時間     : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                    f"模型版本     : LightGBM (OOF AUC={m['auc']:.4f})",
+                    "-" * 52,
+                    f"用戶 ID      : {uid}",
+                    f"風險等級     : {risk_label_text}",
+                    f"黑名單機率   : {prob:.4f}  ({prob*100:.1f}%)",
+                    f"決策門檻     : {thr:.2f}",
+                    f"最終判定     : {'黑名單 (status=1)' if status == 1 else '正常 (status=0)'}",
+                    "-" * 52,
+                    "風險說明：",
+                ]
+                explanations = {
+                    "CRITICAL": [
+                        "  * 黑名單機率超過 50%，極高度懷疑為洗錢車手帳號",
+                        "  * 建議立即凍結帳號並啟動人工審查",
+                        "  * 應依 AML 法規向主管機關申報可疑交易",
+                    ],
+                    "HIGH": [
+                        "  * 黑名單機率超過決策門檻，模型判定為黑名單",
+                        "  * 建議限制提款功能並啟動 KYC 複查",
+                        "  * 追蹤近 30 天交易行為，評估資金流向",
+                    ],
+                    "MEDIUM": [
+                        "  * 黑名單機率介於門檻 50%~100% 之間，屬觀察名單",
+                        "  * 建議加強監控，每週產出行為報告",
+                        "  * 暫不限制功能，但列入高頻監控名單",
+                    ],
+                    "LOW": [
+                        "  * 黑名單機率低於門檻，判定為正常用戶",
+                        "  * 維持常規監控頻率",
+                    ],
+                }
+                report_lines += explanations.get(risk_label_text, ["  * 無額外說明"])
+                report_lines += [
+                    "-" * 52,
+                    "模型依據特徵（前 5 項重要度）：",
+                    "  1. blacklist_neighbor_count — 黑名單鄰居數",
+                    "  2. min_retention_minutes   — 最短資金停留時間",
+                    "  3. total_twd_volume        — 總台幣交易量",
+                    "  4. twd_withdraw_count      — 台幣出金次數",
+                    "  5. night_tx_ratio          — 深夜交易比例",
+                    "=" * 52,
+                    "本報告由 BitoGuard AML 系統自動生成，僅供內部參考。",
+                    "=" * 52,
+                ]
+                report_text = "\n".join(report_lines)
+
+                st.download_button(
+                    label="📄 下載風險評估書 (.txt)",
+                    data=report_text.encode("utf-8"),
+                    file_name=f"risk_report_user_{uid}.txt",
+                    mime="text/plain",
+                    use_container_width=True,
+                )
+                st.markdown("---")
+
                 # 特徵資料（若有快取）
                 if feat_df is not None and "user_id" in feat_df.columns:
                     user_feat = feat_df[feat_df["user_id"] == uid]
