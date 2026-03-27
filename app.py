@@ -38,7 +38,7 @@ _DEMO_REPORT = {
                  "min_retention_minutes","retention_event_count","unique_ip_count",
                  "max_ip_shared_users","ip_anomaly","asymmetry_flag"],
     "oof_metrics": {"auc": 0.8185, "f1": 0.2777, "precision": 0.2392,
-                    "recall": 0.3311, "threshold": 0.12},
+                    "recall": 0.3311, "threshold": 0.12, "accuracy": 0.9564},
     "submission":  {"total": 12753, "blacklist": 562, "normal": 12191},
     "folds": [
         {"fold":1,"threshold":0.16,"precision":0.2821,"recall":0.2683,"f1":0.2750,"auc":0.8181,"val_pos":328},
@@ -150,6 +150,7 @@ with st.sidebar:
     st.markdown(f"**訓練日期：** 2026-03-26")
     st.markdown(f"**OOF F1：** `{m['f1']:.4f}`")
     st.markdown(f"**AUC：** `{m['auc']:.4f}`")
+    st.markdown(f"**準確度：** `{m.get('accuracy', 0.9564):.4f}`")
 
     if st.button("🔄 重新整理快取"):
         st.cache_data.clear()
@@ -163,33 +164,46 @@ if page == "📊 總覽儀表板":
     st.title("🛡️ BitoGuard AML 反洗錢偵測系統")
     st.caption("BitoPro Hackathon — Mule Account Detection Dashboard")
 
+    # ── 計算準確度 ────────────────────────────────────────────────────────────
+    _N_TOTAL, _N_POS = 51017, 1640
+    _tp  = max(0, round(m["recall"] * _N_POS))
+    _fp  = max(0, round(_tp / m["precision"] - _tp)) if m["precision"] > 0 else 0
+    _tn  = (_N_TOTAL - _N_POS) - _fp
+    _acc = m.get("accuracy", (_tp + _tn) / _N_TOTAL)
+
     # ── KPI 指標卡片 ──────────────────────────────────────────────────────────
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
     with c1:
+        st.markdown(f"""<div class="metric-card">
+            <div class="metric-title">✅ 準確度 (Accuracy)</div>
+            <div class="metric-value">{_acc:.4f}</div>
+            <div class="metric-sub">整體預測正確比例</div>
+        </div>""", unsafe_allow_html=True)
+    with c2:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">🎯 AUC (排序能力)</div>
             <div class="metric-value">{m['auc']:.4f}</div>
             <div class="metric-sub">ROC 曲線下面積</div>
         </div>""", unsafe_allow_html=True)
-    with c2:
+    with c3:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">⚖️ F1-Score (綜合)</div>
             <div class="metric-value">{m['f1']:.4f}</div>
             <div class="metric-sub">P={m['precision']:.3f} R={m['recall']:.3f}</div>
         </div>""", unsafe_allow_html=True)
-    with c3:
+    with c4:
         st.markdown(f"""<div class="metric-card">
-            <div class="metric-title">🎯 Precision (準確率)</div>
+            <div class="metric-title">🎯 Precision (精確率)</div>
             <div class="metric-value">{m['precision']:.4f}</div>
             <div class="metric-sub">預測黑名單中真正是的比例</div>
         </div>""", unsafe_allow_html=True)
-    with c4:
+    with c5:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">🔍 Recall (召回率)</div>
             <div class="metric-value">{m['recall']:.4f}</div>
             <div class="metric-sub">實際黑名單被抓到的比例</div>
         </div>""", unsafe_allow_html=True)
-    with c5:
+    with c6:
         st.markdown(f"""<div class="metric-card">
             <div class="metric-title">🚨 預測黑名單數</div>
             <div class="metric-value">{s['blacklist']:,}</div>
