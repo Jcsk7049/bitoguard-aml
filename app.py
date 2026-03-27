@@ -132,8 +132,12 @@ folds = report["folds"]
 # Sidebar
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.image("https://via.placeholder.com/260x60/1e3a5f/ffffff?text=BitoGuard+AML",
-             use_container_width=True)
+    st.markdown("""
+    <div style="background:linear-gradient(135deg,#1e3a5f,#2d6a4f);
+                border-radius:10px;padding:14px 16px;text-align:center;margin-bottom:4px;">
+        <span style="font-size:22px;">🛡️</span>
+        <span style="color:white;font-size:18px;font-weight:bold;margin-left:8px;">BitoGuard AML</span>
+    </div>""", unsafe_allow_html=True)
     st.markdown("---")
     page = st.radio("頁面", [
         "📊 總覽儀表板",
