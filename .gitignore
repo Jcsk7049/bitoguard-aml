@@ -6,7 +6,6 @@ __pycache__/
 *.pyc
 feature_cache*.parquet
 predict_label_ids.parquet
-oof_predictions.csv
 model.json
 pipeline_state.json
 *.log
