@@ -458,17 +458,37 @@ elif page == "🔍 用戶風險查詢":
         except ValueError:
             st.error("請輸入有效的數字 user_id")
 
-    # 批次高風險用戶列表
+    # 高風險 / 低風險 並排
     st.markdown("---")
-    st.subheader("🚨 高風險用戶列表（機率前 50）")
-    if "probability" in sub_df.columns:
-        top50 = sub_df.nlargest(50, "probability")[["user_id", "probability", "status"]].copy()
-        top50["probability"] = (top50["probability"] * 100).round(2)
-        top50["風險等級"] = top50["probability"].apply(
-            lambda p: "🔴 極高" if p >= 0.5 else ("🟠 高" if p >= m["threshold"] else "🟡 中"))
-        top50.columns = ["用戶 ID", "黑名單機率 (%)", "預測標籤", "風險等級"]
-        st.dataframe(top50.style.background_gradient(subset=["黑名單機率 (%)"], cmap="Reds"),
-                     use_container_width=True)
+    col_hi, col_lo = st.columns(2)
+
+    if sub_df is not None and "probability" in sub_df.columns:
+        thr = m["threshold"]
+
+        with col_hi:
+            st.subheader("🚨 高風險用戶列表（前 50）")
+            top50 = sub_df.nlargest(50, "probability")[["user_id", "probability", "status"]].copy()
+            top50["probability"] = (top50["probability"] * 100).round(1)
+            top50["風險等級"] = top50["probability"].apply(
+                lambda p: "🔴 極高" if p >= 50 else "🟠 高")
+            top50.columns = ["用戶 ID", "黑名單機率 (%)", "預測標籤", "風險等級"]
+            st.dataframe(
+                top50.style.background_gradient(subset=["黑名單機率 (%)"], cmap="Reds"),
+                use_container_width=True, height=400,
+            )
+
+        with col_lo:
+            st.subheader("🟢 低風險用戶列表（後 50）")
+            bot50 = sub_df.nsmallest(50, "probability")[["user_id", "probability", "status"]].copy()
+            bot50["probability"] = (bot50["probability"] * 100).round(1)
+            bot50["風險等級"] = "🟢 低風險"
+            bot50.columns = ["用戶 ID", "黑名單機率 (%)", "預測標籤", "風險等級"]
+            st.dataframe(
+                bot50.style.background_gradient(subset=["黑名單機率 (%)"], cmap="Greens_r"),
+                use_container_width=True, height=400,
+            )
+    else:
+        st.info("需要 submission_with_prob.csv 才能顯示用戶列表")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
