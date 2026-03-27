@@ -23,13 +23,19 @@ import streamlit as st
 warnings.filterwarnings("ignore")
 
 # ── 路徑設定（自動偵測 SageMaker / 本機 / Streamlit Cloud）──────────────────
-_SCRIPT_DIR = Path(__file__).parent
-if Path("/home/ec2-user/SageMaker").exists():
-    _BASE = Path("/home/ec2-user/SageMaker")
-elif Path("C:/AWS").exists():
-    _BASE = Path("C:/AWS")
-else:
-    _BASE = _SCRIPT_DIR  # Streamlit Community Cloud：檔案跟 app.py 同目錄
+def _find_base() -> Path:
+    candidates = [
+        Path("/home/ec2-user/SageMaker"),
+        Path("C:/AWS"),
+        Path(__file__).parent,   # script 所在目錄
+        Path("."),               # 當前工作目錄（Streamlit Cloud = repo root）
+    ]
+    for p in candidates:
+        if (p / "cv_report_lgb.json").exists():
+            return p
+    return Path(__file__).parent  # 最終 fallback
+
+_BASE = _find_base()
 
 DATA_DIR      = _BASE / "data"
 SUBMISSION    = _BASE / "submission_with_prob.csv"
