@@ -1,0 +1,31 @@
+1.系統首先透過 bito_api_ingester.py 對接幣託
+的 API。
+1.對抗性增強 (Adversarial Training)：在
+train_xgboost_script.py 中，系統會人為製造
+「攻擊樣本」模擬詐騙集團規避風控的行為，提
+2.斷點續傳：利用 Checkpoint 機制，若抓取中 高模型的魯棒性。
+斷，下次會從最後一個分頁繼續，避免重複拉取
+數據。 2.代價敏感學習 (Cost-Sensitive)：考量到誤判正
+常用戶的代價極高，我們在損失函數中加重了漏
+3.數據湖建置：資料被轉換為 Parquet 格式儲存 報 (FN) 的懲罰，讓模型在極低誤判的前提下極
+在 S3，並透過 Hive 分區（年/月/日）管理。 大化捕捉率。
+4.自動化 Schema：ingest_to_s3.py 會自動啟動 3.模型註冊中心：訓練完成後，若 F1-score 達標
+Glue Crawler，將 S3 的檔案定義成資料表，讓後 （如 ≥ 0.90），系統會自動將模型註冊到 Model
+續的 SQL 與 Spark 任務能直接讀取。 Registry 並標註為「Approved」。
+數據擷取與自動化建倉 (Data 分散式圖運算特徵工程 (Graph-based 模型訓練與對抗性防禦 (MLOps & AI 風險診斷與自動化響應 (Risk
+運作流程
+Ingestion & Cataloging) Feature Engineering) Training) Diagnosis & Incident Response)
+1.資金跳數 (Hops) 計算：透過 PySpark 執行多 1.三層隱私保護 (PII Guard)：在呼叫 Amazon Bedrock 前，會先
+源 BFS 演算法，計算每位用戶距離已知黑名單的 移除敏感資訊，僅傳送與風險相關的「數值特徵」與「SHAP 貢
+交易跳轉次數（例如：直接交易為 1 跳，經由中 獻度」。
+繼錢包轉帳為 2 跳）。
+2.智能分流路由：根據預測機率，系統會自動分配模型：
+2.解決數據傾斜：針對交易所的「超級節點」
+（如熱錢包），系統實作了 Salting（加鹽） 技 極高風險 (Extreme)：調用 Claude 3 Haiku 生成制式封鎖建議，追
+術，將大節點拆分到不同運算節點，防止記憶體 求速度與低成本。
+溢位 (OOM)。
+邊界案例 (Boundary)：調用 Claude 3.5 Sonnet 進行深度推理，產
+3.特徵持久化：計算出的特徵（跳數、IP 共用 出人類讀得懂的風險成因報告。
+數、異常交易速）會寫入 SageMaker Feature
+Store，確保訓練與推論時使用的特徵完全一致。 3.閉環反饋 (Feedback Loop)：如果法遵人員發現誤判，可透過
+API 回報，系統會將該樣本納入下次的增量訓練中。

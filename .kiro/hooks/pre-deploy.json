@@ -1,0 +1,47 @@
+{
+  "hooks": [
+    {
+      "name": "pre-deploy-full-compliance",
+      "description": "SAM/CloudFormation 部署前執行完整合規驗證：憑證 + S3 ACL + PII + Region",
+      "event": "pre-task",
+      "filter": {
+        "taskPattern": ".*deploy.*|.*sam.*"
+      },
+      "steps": [
+        {
+          "id": "syntax-check",
+          "type": "shell",
+          "command": "python -c \"import ast, pathlib; errors=[f for f in pathlib.Path('.').glob('*.py') if not ast.parse(f.read_text(encoding='utf-8'))] ; print(f'Syntax OK ({len(list(pathlib.Path(chr(46)).glob(chr(42)+chr(46)+chr(112)+chr(121))))} files)')\"",
+          "workingDirectory": "${workspaceRoot}",
+          "onFailure": "block",
+          "timeout": 15
+        },
+        {
+          "id": "compliance-check",
+          "type": "shell",
+          "command": "python check_compliance.py --no-color",
+          "workingDirectory": "${workspaceRoot}",
+          "onFailure": "block",
+          "timeout": 60,
+          "failMessage": "合規檢核未通過，部署被阻止。請先修復所有 FAIL 項目。"
+        },
+        {
+          "id": "region-check",
+          "type": "shell",
+          "command": "python -c \"import os; r=os.environ.get('AWS_DEFAULT_REGION',''); allowed={'us-east-1','us-west-2'}; print(f'[OK] Region={r}') if r in allowed else (print(f'[FAIL] Region={r!r} 不符合競賽規定'), exit(1))\"",
+          "workingDirectory": "${workspaceRoot}",
+          "onFailure": "block",
+          "timeout": 5
+        },
+        {
+          "id": "role-arn-check",
+          "type": "shell",
+          "command": "python -c \"import os; arn=os.environ.get('SAGEMAKER_ROLE_ARN',''); ok=arn.startswith('arn:aws:iam::') and 'ACCOUNT_ID' not in arn; print('[OK] SAGEMAKER_ROLE_ARN set') if ok else print('[WARN] SAGEMAKER_ROLE_ARN 未設定或仍含佔位符')\"",
+          "workingDirectory": "${workspaceRoot}",
+          "onFailure": "warn",
+          "timeout": 5
+        }
+      ]
+    }
+  ]
+}

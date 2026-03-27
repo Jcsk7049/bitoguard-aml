@@ -1,0 +1,98 @@
+{
+  "model": "LightGBM",
+  "params": {
+    "objective": "binary",
+    "metric": "auc",
+    "num_leaves": 31,
+    "learning_rate": 0.01,
+    "feature_fraction": 0.8,
+    "bagging_fraction": 0.8,
+    "bagging_freq": 5,
+    "min_child_samples": 20,
+    "seed": 42,
+    "verbosity": -1,
+    "n_jobs": -1
+  },
+  "num_rounds": 500,
+  "features": [
+    "age",
+    "kyc_level",
+    "user_source",
+    "twd_deposit_count",
+    "twd_withdraw_count",
+    "total_twd_volume",
+    "avg_twd_amount",
+    "night_tx_ratio",
+    "high_speed_risk",
+    "crypto_deposit_count",
+    "crypto_withdraw_count",
+    "crypto_currency_count",
+    "min_retention_minutes",
+    "retention_event_count",
+    "unique_ip_count",
+    "max_ip_shared_users",
+    "ip_anomaly",
+    "asymmetry_flag",
+    "blacklist_neighbor_count",
+    "is_direct_neighbor"
+  ],
+  "oof_metrics": {
+    "auc": 0.8185,
+    "f1": 0.2777,
+    "precision": 0.2392,
+    "recall": 0.3311,
+    "threshold": 0.12
+  },
+  "submission": {
+    "total": 12753,
+    "blacklist": 562,
+    "normal": 12191
+  },
+  "folds": [
+    {
+      "fold": 1,
+      "threshold": 0.16,
+      "precision": 0.2821,
+      "recall": 0.2683,
+      "f1": 0.275,
+      "auc": 0.8181,
+      "val_pos": 328
+    },
+    {
+      "fold": 2,
+      "threshold": 0.12,
+      "precision": 0.215,
+      "recall": 0.3232,
+      "f1": 0.2582,
+      "auc": 0.8044,
+      "val_pos": 328
+    },
+    {
+      "fold": 3,
+      "threshold": 0.12,
+      "precision": 0.2529,
+      "recall": 0.3323,
+      "f1": 0.2872,
+      "auc": 0.8379,
+      "val_pos": 328
+    },
+    {
+      "fold": 4,
+      "threshold": 0.11,
+      "precision": 0.2459,
+      "recall": 0.3628,
+      "f1": 0.2931,
+      "auc": 0.8162,
+      "val_pos": 328
+    },
+    {
+      "fold": 5,
+      "threshold": 0.12,
+      "precision": 0.2562,
+      "recall": 0.3445,
+      "f1": 0.2939,
+      "auc": 0.8166,
+      "val_pos": 328
+    }
+  ]
+}

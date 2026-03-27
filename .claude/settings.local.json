@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c \"import pdfplumber; print\\(''''pdfplumber available''''\\)\")",
+      "Bash(pip install:*)",
+      "Bash(python3:*)",
+      "Bash(find /c/AWS -maxdepth 4 \\\\\\(-name package.json -o -name requirements*.txt -o -name pyproject.toml -o -name manage.py -o -name app.py -o -name main.py -o -name server.js -o -name index.js -o -name vite.config.* -o -name next.config.* -o -name Makefile -o -name docker-compose.yml -o -name Procfile -o -name .flaskenv \\\\\\))",
+      "Bash(wc -l /c/AWS/*.py)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''xai_bedrock.py''\\).read\\(\\)\\); print\\(''Syntax OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''xai_bedrock.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''Syntax OK''\\)\")",
+      "Bash(python -c \":*)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''train_sagemaker.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''Syntax OK''\\)\")",
+      "Bash(python check_compliance.py --no-color --dir . --only c1 c2)",
+      "Bash(python check_compliance.py --no-color --dir . --only c3 --verbose)",
+      "Bash(python check_compliance.py --no-color --verbose)",
+      "Bash(grep -rn \"bedrock\\\\|invoke_model\\\\|boto3\" C:AWS*.py)",
+      "Bash(python -c \"import pathlib; [print\\(f.name\\) for f in pathlib.Path\\(''.''\\).glob\\(''*.py''\\)]\")",
+      "Bash(python check_compliance.py --no-color)",
+      "Bash(python:*)",
+      "Bash(2)",
+      "Bash(pip show:*)",
+      "Bash(for f:*)",
+      "Bash(do echo:*)",
+      "Bash(done)"
+    ]
+  }
+}

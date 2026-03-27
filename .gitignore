@@ -1,0 +1,21 @@
+# 原始資料（68MB，從 API 重新抓即可）
+data/
+
+# 快取 / 中間產物
+__pycache__/
+*.pyc
+feature_cache*.parquet
+predict_label_ids.parquet
+oof_predictions.csv
+model.json
+pipeline_state.json
+*.log
+xai_reports.json
+
+# 本機環境
+.env
+*.env
+
+# OS
+.DS_Store
+Thumbs.db

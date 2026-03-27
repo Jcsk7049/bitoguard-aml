@@ -1,0 +1,411 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Description: >
+  幣託人頭戶偵測 — Lambda 診斷書生成服務
+  S3 Event → Lambda (lambda_diagnosis.py) → Bedrock → DynamoDB
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Region 合規規則（競賽禁令：CloudFormation 部署階段強制攔截）
+#
+#  Rules 在 ChangeSet 建立時執行，部署至非允許 Region 時直接失敗，
+#  錯誤訊息：AssertDescription 的內容會顯示在 CloudFormation 主控台。
+# ══════════════════════════════════════════════════════════════════════════════
+Rules:
+  DeploymentRegionRule:
+    Assertions:
+      - Assert: !Or
+          - !Equals [!Ref AWS::Region, "us-east-1"]
+          - !Equals [!Ref AWS::Region, "us-west-2"]
+        AssertDescription: >
+          [Region 合規] Stack 僅允許部署至 us-east-1 或 us-west-2（競賽規定）。
+          請以 sam deploy --region us-east-1 重新部署。
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  參數
+# ══════════════════════════════════════════════════════════════════════════════
+Parameters:
+
+  S3Bucket:
+    Type: String
+    Default: your-hackathon-bucket
+    Description: 存放預測結果 CSV 的 S3 Bucket
+
+  S3PredictPrefix:
+    Type: String
+    Default: predictions/
+    Description: 觸發 Lambda 的 S3 Key prefix（預測結果 CSV 上傳路徑）
+
+  DynamoTableName:
+    Type: String
+    Default: bito-diagnoses
+    Description: DynamoDB 診斷書資料表名稱
+
+  BedrockRegion:
+    Type: String
+    Default: us-east-1
+    AllowedValues:
+      - us-east-1    # 競賽合規 Region ✓
+      - us-west-2    # 競賽合規 Region ✓
+    Description: >
+      Bedrock 服務 Region（競賽禁令：只允許 us-east-1 或 us-west-2）。
+      Claude 3.5 Sonnet v2 在兩個 Region 均可用。
+
+  RiskThreshold:
+    Type: String
+    Default: "0.65"
+    Description: 觸發診斷的最低風險機率門檻
+
+  SnsAlertArn:
+    Type: String
+    Default: ""
+    Description: 錯誤率告警 SNS Topic ARN（空白則不告警）
+
+  LogLevel:
+    Type: String
+    Default: INFO
+    AllowedValues: [DEBUG, INFO, WARNING, ERROR]
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  全域設定
+# ══════════════════════════════════════════════════════════════════════════════
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 900          # 最大值，確保大批次診斷不超時
+    MemorySize: 512
+    Architectures: [arm64]  # Graviton2：效能提升 20%，成本降低 20%
+    Environment:
+      Variables:
+        DYNAMO_TABLE:      !Ref DynamoTableName
+        BEDROCK_REGION:    !Ref BedrockRegion
+        S3_REGION:         !Ref BedrockRegion    # 與 BedrockRegion 共用同一受限參數
+        RISK_THRESHOLD:    !Ref RiskThreshold
+        SNS_ALERT_ARN:     !Ref SnsAlertArn
+        LOG_LEVEL:         !Ref LogLevel
+        CW_NAMESPACE:      BitoMuleDetection
+    Layers:
+      - !Ref PythonDepsLayer
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Lambda Layer（pandas / boto3 最新版）
+# ══════════════════════════════════════════════════════════════════════════════
+Resources:
+
+  PythonDepsLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: bito-diagnosis-deps
+      Description: pandas for Lambda
+      ContentUri: layer/
+      CompatibleRuntimes: [python3.12]
+      CompatibleArchitectures: [arm64]
+    Metadata:
+      BuildMethod: python3.12
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  DynamoDB 資料表
+# ══════════════════════════════════════════════════════════════════════════════
+
+  DiagnosesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Ref DynamoTableName
+      BillingMode: PAY_PER_REQUEST   # On-Demand，Hackathon 環境不預測流量
+      TableClass: STANDARD
+
+      # Primary Key
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: generated_at
+          AttributeType: S
+        - AttributeName: risk_level
+          AttributeType: S
+        - AttributeName: scoring_tier
+          AttributeType: S
+        - AttributeName: probability
+          AttributeType: N
+
+      KeySchema:
+        - AttributeName: user_id       # PK
+          KeyType: HASH
+        - AttributeName: generated_at  # SK（一個用戶可有多次診斷記錄）
+          KeyType: RANGE
+
+      # GSI-1：依風險等級查詢所有診斷（前端儀表板「高風險列表」用）
+      GlobalSecondaryIndexes:
+        - IndexName: risk_level-generated_at-index
+          KeySchema:
+            - AttributeName: risk_level
+              KeyType: HASH
+            - AttributeName: generated_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+        # GSI-2：依風險層級 + 機率排序（找出同層中最高機率用戶）
+        - IndexName: scoring_tier-probability-index
+          KeySchema:
+            - AttributeName: scoring_tier
+              KeyType: HASH
+            - AttributeName: probability
+              KeyType: RANGE
+          Projection:
+            ProjectionType: INCLUDE
+            NonKeyAttributes:
+              - user_id
+              - primary_action
+              - auto_executable
+              - threat_pattern
+              - generated_at
+
+      # TTL：90 天後自動刪除（節省儲存費用）
+      TimeToLiveSpecification:
+        AttributeName: expire_at
+        Enabled: true
+
+      # ── S-1 修正：明確宣告靜態加密（SSE，AWS Managed Key） ─────────────────
+      # DynamoDB 預設雖已加密，但競賽規範要求所有儲存資源明確啟用 SSE。
+      # SSEType: KMS 使用 AWS 受管金鑰（aws/dynamodb），無額外費用。
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+
+      # 啟用 Point-in-time Recovery（Well-Architected 可靠性）
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+      Tags:
+        - Key: Project
+          Value: bito-mule-detection
+        - Key: Environment
+          Value: hackathon
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Lambda 函數
+# ══════════════════════════════════════════════════════════════════════════════
+
+  DiagnosisFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: bito-diagnosis-generator
+      CodeUri: ./
+      Handler: lambda_diagnosis.lambda_handler
+      Description: S3 預測結果觸發 → Bedrock 診斷書 → DynamoDB
+      ReservedConcurrentExecutions: 5   # 防止 Bedrock API 過載
+
+      # IAM 權限（最小權限原則）
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref S3Bucket
+        - DynamoDBWritePolicy:
+            TableName: !Ref DynamoTableName
+        - Statement:
+            - Sid: BedrockInvokeModel
+              Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource:
+                - !Sub arn:aws:bedrock:${BedrockRegion}::foundation-model/anthropic.claude-3-5-sonnet-20241022-v2:0
+                - !Sub arn:aws:bedrock:${BedrockRegion}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0
+            - Sid: CloudWatchMetrics
+              Effect: Allow
+              Action:
+                - cloudwatch:PutMetricData
+              Resource: "*"
+            - Sid: SnsPublish
+              Effect: Allow
+              Action:
+                - sns:Publish
+              Resource: !If [HasSnsArn, !Ref SnsAlertArn, !Ref AWS::NoValue]
+
+      # S3 Event Trigger
+      Events:
+        PredictionsUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref PredictionsBucketRef
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: !Ref S3PredictPrefix
+                  - Name: suffix
+                    Value: .csv
+
+      # 死信佇列（Lambda 非同步呼叫失敗時）
+      DeadLetterQueue:
+        Type: SQS
+        TargetArn: !GetAtt DiagnosisDLQ.Arn
+
+    # Lambda 執行角色的額外 Trust Policy
+    Metadata:
+      BuildMethod: python3.12
+
+  # S3 Bucket 參考（已存在的 Bucket 需以 !Ref 引用）
+  # 注意：若 Bucket 已存在，請改用 AWS::S3::BucketNotification 資源
+  PredictionsBucketRef:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain    # 刪除 Stack 時保留 Bucket
+    Properties:
+      BucketName: !Ref S3Bucket
+
+      # ── V-1 修正：封鎖所有公開存取（競賽禁令：不得建立公開 Bucket） ──
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls:       true   # 拒絕任何 public ACL 設定
+        IgnorePublicAcls:      true   # 忽略既有 public ACL
+        BlockPublicPolicy:     true   # 拒絕任何 public Bucket Policy
+        RestrictPublicBuckets: true   # 阻止 public Bucket Policy 生效
+
+      # ── V-3 修正：Bucket 層級強制 AES-256 加密（Server-Side Encryption） ──
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true   # 減少 KMS API 呼叫費用（AES256 時無額外費用）
+
+      # 啟用版本控制（Well-Architected 資料保護建議）
+      VersioningConfiguration:
+        Status: Enabled
+
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: "s3:ObjectCreated:*"
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: !Ref S3PredictPrefix
+                  - Name: suffix
+                    Value: .csv
+            Function: !GetAtt DiagnosisFunction.Arn
+
+  # S3 → Lambda 呼叫許可
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt DiagnosisFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub arn:aws:s3:::${S3Bucket}
+      SourceAccount: !Ref AWS::AccountId
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Dead Letter Queue
+# ══════════════════════════════════════════════════════════════════════════════
+
+  DiagnosisDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: bito-diagnosis-dlq
+      MessageRetentionPeriod: 1209600   # 14 天
+      # V-4 修正：啟用 SQS Managed SSE（靜態加密）
+      # DLQ 保留 Lambda 失敗的事件 Payload，可能含用戶 ID 與風險特徵
+      SqsManagedSseEnabled: true
+      Tags:
+        - Key: Project
+          Value: bito-mule-detection
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  CloudWatch Dashboard（前端儀表板資料來源）
+# ══════════════════════════════════════════════════════════════════════════════
+
+  DiagnosisDashboard:
+    Type: AWS::CloudWatch::Dashboard
+    Properties:
+      DashboardName: BitoMuleDetection
+      DashboardBody: !Sub |
+        {
+          "widgets": [
+            {
+              "type": "metric",
+              "properties": {
+                "title": "診斷書生成量（每小時）",
+                "metrics": [
+                  ["BitoMuleDetection", "DiagnosisTotal",     {"label": "總觸發"}],
+                  ["BitoMuleDetection", "DiagnosisProcessed", {"label": "成功生成"}],
+                  ["BitoMuleDetection", "DiagnosisErrors",    {"label": "失敗", "color": "#d62728"}]
+                ],
+                "period": 3600,
+                "stat": "Sum",
+                "view": "timeSeries"
+              }
+            },
+            {
+              "type": "metric",
+              "properties": {
+                "title": "風險層級分布",
+                "metrics": [
+                  ["BitoMuleDetection", "ExtremeCount",  {"label": "EXTREME (P>90%)"}],
+                  ["BitoMuleDetection", "BoundaryCount", {"label": "BOUNDARY (65-75%)"}]
+                ],
+                "period": 86400,
+                "stat": "Sum",
+                "view": "bar"
+              }
+            },
+            {
+              "type": "alarm",
+              "properties": {
+                "title": "Lambda 錯誤告警",
+                "alarms": [
+                  "arn:aws:cloudwatch:${AWS::Region}:${AWS::AccountId}:alarm/bito-diagnosis-error-rate"
+                ]
+              }
+            }
+          ]
+        }
+
+  # CloudWatch Alarm：Lambda 錯誤率 > 10%
+  DiagnosisErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: bito-diagnosis-error-rate
+      AlarmDescription: Lambda 診斷書生成錯誤率超過 10%
+      Namespace: BitoMuleDetection
+      MetricName: DiagnosisErrors
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions:
+        - !If [HasSnsArn, !Ref SnsAlertArn, !Ref AWS::NoValue]
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  條件
+# ══════════════════════════════════════════════════════════════════════════════
+Conditions:
+  HasSnsArn: !Not [!Equals [!Ref SnsAlertArn, ""]]
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  輸出
+# ══════════════════════════════════════════════════════════════════════════════
+Outputs:
+
+  LambdaFunctionArn:
+    Description: Lambda 函數 ARN
+    Value: !GetAtt DiagnosisFunction.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-LambdaArn
+
+  DynamoTableName:
+    Description: DynamoDB 診斷書資料表名稱
+    Value: !Ref DiagnosesTable
+    Export:
+      Name: !Sub ${AWS::StackName}-DynamoTable
+
+  DynamoTableArn:
+    Description: DynamoDB 資料表 ARN
+    Value: !GetAtt DiagnosesTable.Arn
+
+  DlqUrl:
+    Description: 死信佇列 URL（監控 Lambda 失敗事件）
+    Value: !Ref DiagnosisDLQ
+
+  DashboardUrl:
+    Description: CloudWatch Dashboard URL
+    Value: !Sub https://${AWS::Region}.console.aws.amazon.com/cloudwatch/home#dashboards:name=BitoMuleDetection

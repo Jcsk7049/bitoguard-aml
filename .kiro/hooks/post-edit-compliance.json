@@ -1,0 +1,41 @@
+{
+  "hooks": [
+    {
+      "name": "compliance-check-on-py-edit",
+      "description": "每次編輯 Python 檔案後，自動執行合規檢核腳本（C-1 憑證 / C-2 S3 / C-3 PII）",
+      "event": "post-file-edit",
+      "filter": {
+        "filePattern": "*.py"
+      },
+      "steps": [
+        {
+          "id": "run-compliance",
+          "type": "shell",
+          "command": "python check_compliance.py --no-color",
+          "workingDirectory": "${workspaceRoot}",
+          "onFailure": "warn",
+          "timeout": 30
+        }
+      ]
+    },
+    {
+      "name": "region-guard-on-py-edit",
+      "description": "偵測新增的 boto3.client() 呼叫是否都帶有明確的 region_name 參數",
+      "event": "post-file-edit",
+      "filter": {
+        "filePattern": "*.py",
+        "contentPattern": "boto3\\.client\\(|boto3\\.resource\\("
+      },
+      "steps": [
+        {
+          "id": "check-region-name",
+          "type": "shell",
+          "command": "python -c \"\nimport pathlib, re, sys\nfail = []\nfor py in pathlib.Path('.').glob('*.py'):\n    src = py.read_text(encoding='utf-8')\n    for ln, line in enumerate(src.splitlines(), 1):\n        if re.search(r'boto3\\.(client|resource)\\(', line):\n            if 'region_name' not in line and 'Session' not in line:\n                if not line.strip().startswith('#'):\n                    fail.append(f'{py.name}:{ln}: {line.strip()[:80]}')\nif fail:\n    print('[WARN] boto3 client without explicit region_name:')\n    [print(f'  {f}') for f in fail]\n    sys.exit(1)\nelse:\n    print('[OK] All boto3 clients have explicit region_name')\n\"",
+          "workingDirectory": "${workspaceRoot}",
+          "onFailure": "warn",
+          "timeout": 10
+        }
+      ]
+    }
+  ]
+}
