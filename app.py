@@ -88,30 +88,31 @@ def load_report():
                 return json.load(f)
     return _DEMO_REPORT
 
+def _find_file(filename: str) -> Path | None:
+    for p in [_HERE / filename, Path(filename)]:
+        if p.exists():
+            return p
+    return None
+
 @st.cache_data
 def load_submission():
-    if not SUBMISSION.exists():
-        return None
-    df = pd.read_csv(SUBMISSION)
-    return df
+    p = _find_file("submission_with_prob.csv")
+    return pd.read_csv(p) if p else None
 
 @st.cache_data
 def load_oof():
-    if not OOF_PRED.exists():
-        return None
-    return pd.read_csv(OOF_PRED)
+    p = _find_file("oof_predictions.csv")
+    return pd.read_csv(p) if p else None
 
 @st.cache_data
 def load_feature_importance():
-    if not FEAT_IMP.exists():
-        return None
-    return pd.read_csv(FEAT_IMP)
+    p = _find_file("feature_importance.csv")
+    return pd.read_csv(p) if p else None
 
 @st.cache_data
 def load_feature_cache():
-    if not FEAT_CACHE.exists():
-        return None
-    return pd.read_parquet(FEAT_CACHE)
+    p = _find_file("feature_cache_v2.parquet")
+    return pd.read_parquet(p) if p else None
 
 
 report  = load_report()
@@ -269,8 +270,7 @@ elif page == "🔍 用戶風險查詢":
     st.title("🔍 用戶風險查詢")
 
     if sub_df is None:
-        st.error("找不到 submission_with_prob.csv，請先執行 lgb_pipeline.py")
-        st.stop()
+        st.warning("submission_with_prob.csv 未載入，部分功能受限。")
 
     # 搜尋框
     col_search, col_btn = st.columns([3, 1])
@@ -471,12 +471,13 @@ elif page == "📈 模型評估":
 elif page == "📋 提交結果":
     st.title("📋 提交結果")
 
+    # 統計資訊：優先用檔案，若無則用 report 內嵌數字
     if sub_df is None:
-        st.error("找不到 submission_with_prob.csv")
-        st.stop()
-
-    # 統計資訊
-    n_total = len(sub_df)
+        n_total  = s["total"]
+        n_black  = s["blacklist"]
+        n_norm   = s["normal"]
+    else:
+        n_total = len(sub_df)
     n_black = int(sub_df["status"].sum())
     n_norm  = n_total - n_black
 
