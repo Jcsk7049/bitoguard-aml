@@ -322,25 +322,34 @@ elif page == "🔍 用戶風險查詢":
                 else:
                     risk_level, risk_color = "🟢 低風險（正常）", "#27ae60"
 
-                # 結果卡片
+                # ── 大字機率顯示 ──────────────────────────────────────────────
                 st.markdown(f"""
                 <div style="border: 3px solid {risk_color}; border-radius: 14px;
-                            padding: 24px; background: #fafafa;">
-                    <h2 style="color:{risk_color}; margin:0">用戶 ID：{uid}</h2>
-                    <h3 style="color:{risk_color}; margin:8px 0">{risk_level}</h3>
-                    <hr>
-                    <table style="width:100%; font-size:16px;">
+                            padding: 28px; background: #0e1117; text-align:center;">
+                    <div style="color:#aaa; font-size:15px; margin-bottom:6px;">
+                        用戶 ID <b style="color:white;">{uid}</b> 為黑名單的機率
+                    </div>
+                    <div style="font-size:80px; font-weight:900; line-height:1;
+                                color:{risk_color}; letter-spacing:-2px;">
+                        {prob*100:.1f}%
+                    </div>
+                    <div style="font-size:18px; color:{risk_color}; margin-top:10px;
+                                font-weight:bold;">
+                        {risk_level}
+                    </div>
+                    <hr style="border-color:rgba(255,255,255,0.15); margin:16px 0;">
+                    <table style="width:100%; font-size:15px; color:#ccc; text-align:left;">
                         <tr>
-                            <td width="50%"><b>預測機率（黑名單）</b></td>
-                            <td><b style="font-size:24px; color:{risk_color}">{prob:.4f}</b></td>
+                            <td width="50%">精確機率</td>
+                            <td style="color:{risk_color}; font-weight:bold;">{prob:.6f}</td>
                         </tr>
                         <tr>
-                            <td><b>預測標籤</b></td>
-                            <td>{"<span class='blacklist-badge'>黑名單 (1)</span>" if status==1 else "<span class='normal-badge'>正常 (0)</span>"}</td>
+                            <td>最終判定</td>
+                            <td>{"<span style='background:#c0392b;color:white;padding:2px 10px;border-radius:12px;font-weight:bold;'>黑名單 ✗</span>" if status==1 else "<span style='background:#27ae60;color:white;padding:2px 10px;border-radius:12px;font-weight:bold;'>正常 ✓</span>"}</td>
                         </tr>
                         <tr>
-                            <td><b>決策門檻</b></td>
-                            <td>{thr:.2f}</td>
+                            <td>決策門檻</td>
+                            <td style="color:#aaa;">{thr:.2f}（機率 > {thr:.2f} 判為黑名單）</td>
                         </tr>
                     </table>
                 </div>""", unsafe_allow_html=True)
