@@ -713,6 +713,7 @@ components.html("""
         var s = doc.createElement('style');
         s.id = '_bito_fix';
         s.textContent =
+            /* ── 側邊欄收納按鈕（〈）── */
             '[data-testid="stSidebarCollapseButton"]{font-size:0!important;z-index:999999!important;}' +
             '[data-testid="stSidebarCollapseButton"] button{all:unset!important;display:flex!important;' +
             'align-items:center!important;justify-content:center!important;' +
@@ -725,52 +726,30 @@ components.html("""
             'font-size:22px!important;font-weight:bold!important;color:#8E735B!important;' +
             'visibility:visible!important;display:block!important;font-family:sans-serif!important;}' +
             '[data-testid="stSidebarCollapseButton"] button::after{content:none!important;display:none!important;}' +
-            /* collapsedControl 視覺隱藏但保留在 DOM 讓 JS dispatchEvent 能觸發 */
-            '[data-testid="collapsedControl"]{opacity:0!important;pointer-events:none!important;' +
-            'position:fixed!important;top:-9999px!important;left:-9999px!important;}' +
+            /* ── 側邊欄展開按鈕（〉）：直接改造原生 collapsedControl，無需 JS 點擊 ── */
+            '[data-testid="collapsedControl"]{' +
+            'position:fixed!important;top:12px!important;left:0!important;' +
+            'z-index:9999999!important;opacity:1!important;pointer-events:auto!important;' +
+            'width:42px!important;height:42px!important;font-size:0!important;}' +
+            '[data-testid="collapsedControl"] button{all:unset!important;display:flex!important;' +
+            'align-items:center!important;justify-content:center!important;' +
+            'width:42px!important;height:42px!important;' +
+            'background:#FFFFFF!important;border:1.5px solid #8E735B!important;' +
+            'border-radius:0 8px 8px 0!important;cursor:pointer!important;' +
+            'box-shadow:2px 0 10px rgba(0,0,0,.1)!important;}' +
+            '[data-testid="collapsedControl"] span,' +
+            '[data-testid="collapsedControl"] svg{display:none!important;visibility:hidden!important;}' +
+            '[data-testid="collapsedControl"] button::before{content:"\\3009"!important;' +
+            'font-size:20px!important;font-weight:bold!important;color:#8E735B!important;' +
+            'font-family:sans-serif!important;display:block!important;}' +
+            /* ── Header 隱藏 ── */
             '[data-testid="stHeader"]{display:none!important;visibility:hidden!important;}';
         (doc.head || doc.documentElement).appendChild(s);
-    }
-
-    /* ── 在父頁面建立〉懸浮按鈕 ── */
-    function createOpenBtn() {
-        if (doc.getElementById('sidebar-open-btn')) return;
-        var btn = doc.createElement('button');
-        btn.id = 'sidebar-open-btn';
-        btn.textContent = '\u3009';  // 〉
-        btn.style.cssText =
-            'position:fixed;top:12px;left:0;width:42px;height:42px;' +
-            'background:#FFFFFF;color:#8E735B;border:1.5px solid #8E735B;' +
-            'border-radius:0 8px 8px 0;display:none;align-items:center;' +
-            'justify-content:center;font-size:20px;font-weight:bold;' +
-            'font-family:sans-serif;cursor:pointer;z-index:9999999;' +
-            'box-shadow:2px 0 10px rgba(0,0,0,.1);outline:none;';
-        btn.addEventListener('click', function () {
-            /* 嘗試多個選擇器：有些 Streamlit 版本 collapsedControl 本身就是按鈕 */
-            var nb = doc.querySelector('[data-testid="collapsedControl"] button') ||
-                     doc.querySelector('[data-testid="collapsedControl"]');
-            if (nb) {
-                /* dispatchEvent 才能觸發 React 合成事件，純 .click() 有時無效 */
-                nb.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            }
-        });
-        doc.body.appendChild(btn);
-    }
-
-    function syncOpenBtn() {
-        var btn = doc.getElementById('sidebar-open-btn');
-        if (!btn) { createOpenBtn(); btn = doc.getElementById('sidebar-open-btn'); }
-        if (!btn) return;
-        var sb = doc.querySelector('[data-testid="stSidebar"]');
-        var open = sb && sb.getBoundingClientRect().width > 100;
-        btn.style.display = open ? 'none' : 'flex';
     }
 
     function init() {
         injectCSS();
         purge(doc.body);
-        createOpenBtn();
-        syncOpenBtn();
 
         var obs = new MutationObserver(function (mutations) {
             var dirty = false;
@@ -779,7 +758,7 @@ components.html("""
                 if (m.type === 'characterData' && hasKeyword(m.target.nodeValue)) m.target.nodeValue = '';
                 if (m.addedNodes && m.addedNodes.length) dirty = true;
             }
-            if (dirty) { injectCSS(); purge(doc.body); syncOpenBtn(); }
+            if (dirty) { injectCSS(); purge(doc.body); }
         });
         obs.observe(doc.body, { childList: true, subtree: true, characterData: true, attributes: true });
     }
@@ -992,8 +971,6 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
-
-# 〉懸浮按鈕由上方 components.html 的 createOpenBtn() 在父頁面 DOM 直接建立
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 頁面 1：總覽儀表板
