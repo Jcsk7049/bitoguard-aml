@@ -742,8 +742,13 @@ components.html("""
             '[data-testid="collapsedControl"] button::before{content:"\\3009"!important;' +
             'font-size:20px!important;font-weight:bold!important;color:#8E735B!important;' +
             'font-family:sans-serif!important;display:block!important;}' +
-            /* ── Header 隱藏 ── */
-            '[data-testid="stHeader"]{display:none!important;visibility:hidden!important;}';
+            /* ── Header：透明化但不 display:none，否則會連帶隱藏 collapsedControl ── */
+            '[data-testid="stHeader"]{background:transparent!important;box-shadow:none!important;' +
+            'border:none!important;pointer-events:none!important;}' +
+            /* 隱藏 Header 內所有子元素（toolbar、decoration 等），但排除 collapsedControl */
+            '[data-testid="stHeader"]>div>*:not([data-testid="collapsedControl"]),' +
+            '[data-testid="stHeader"]>div>*:not([data-testid="collapsedControl"])>*{' +
+            'visibility:hidden!important;pointer-events:none!important;}';
         (doc.head || doc.documentElement).appendChild(s);
     }
 
