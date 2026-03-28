@@ -86,9 +86,34 @@ html, body, [class*="css"], * {
     border-right: 1px solid #DDD8CE !important;
 }
 
+/* ── 強制清除 Material Icon 殘留文字 ──────────────────────────────────── */
+/* Material Symbols 字體載入失敗時，字碼會以明文顯示 → 強制隱藏 */
+.material-symbols-rounded,
+.material-symbols-outlined,
+.material-symbols-sharp,
+.material-icons,
+.material-icons-outlined,
+.material-icons-round {
+    font-size: 0 !important;
+    line-height: 0 !important;
+    overflow: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    display: inline-block !important;
+    visibility: hidden !important;
+}
+/* 確保 section / div 的 ::before ::after 不輸出任何文字 */
+[data-testid="stSidebar"] section::before,
+[data-testid="stSidebar"] section::after,
+[data-testid="stSidebar"] > div::before,
+[data-testid="stSidebar"] > div::after {
+    content: none !important;
+    display: none !important;
+}
+
 /* ── 側邊欄收合 / 展開 按鈕 ─────────────────────────────────────────── */
 
-/* 確保按鈕可點、z-index 最高 */
+/* 確保按鈕容器可點、z-index 最高 */
 [data-testid="stSidebarCollapseButton"],
 [data-testid="collapsedControl"] {
     z-index: 99999 !important;
@@ -103,28 +128,40 @@ html, body, [class*="css"], * {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    width: 32px !important;
-    height: 32px !important;
+    width: 36px !important;
+    height: 36px !important;
     border-radius: 8px !important;
     cursor: pointer !important;
     pointer-events: auto !important;
     z-index: 99999 !important;
     position: relative !important;
+    background: transparent !important;
     transition: background 0.2s !important;
+    color: #8E735B !important;
 }
 [data-testid="stSidebarCollapseButton"] button:hover,
 [data-testid="collapsedControl"] button:hover {
-    background: rgba(93,90,84,0.10) !important;
+    background: rgba(142,115,91,0.10) !important;
 }
-/* SVG 箭頭正常顯示 */
+/* SVG 箭頭：棕色 */
 [data-testid="stSidebarCollapseButton"] button svg,
 [data-testid="collapsedControl"] button svg {
     display: block !important;
-    width: 18px !important;
-    height: 18px !important;
-    stroke: #5D5A54 !important;
+    width: 20px !important;
+    height: 20px !important;
+    stroke: #8E735B !important;
     fill: none !important;
     pointer-events: none !important;
+}
+/* 隱藏 button 內的 Material Icon span（字體不可用時顯示為明文）*/
+[data-testid="stSidebarCollapseButton"] button span,
+[data-testid="collapsedControl"] button span {
+    font-size: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    visibility: hidden !important;
+    display: inline-block !important;
 }
 /* 移除任何 content 屬性殘留 */
 [data-testid="stSidebarCollapseButton"] button::before,
@@ -138,23 +175,27 @@ html, body, [class*="css"], * {
     padding: 2rem 1.6rem 1.5rem !important;
 }
 [data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span,
 [data-testid="stSidebar"] label {
     color: #6A6058 !important;
 }
+/* span 不全域著色，避免 Material Icon 文字被顯示 */
+[data-testid="stSidebar"] [data-testid] span,
+[data-testid="stSidebar"] .stButton span {
+    color: inherit !important;
+}
 
-/* ── 全域按鈕（白底棕框，白色帶質感）────────────────────────────────── */
+/* ── 全域按鈕（白底棕框，輪廓清晰）────────────────────────────────── */
 .stButton > button,
 .stDownloadButton > button {
     border-radius: 10px !important;
     background: #FFFFFF !important;
     color: #8E735B !important;
-    border: 1.5px solid #8E735B !important;
+    border: 2px solid #8E735B !important;
     font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'Inter', sans-serif !important;
     font-size: 13.5px !important;
     font-weight: 600 !important;
     letter-spacing: 0.3px !important;
-    box-shadow: none !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
     transition: background 0.2s, border-color 0.2s, box-shadow 0.2s !important;
     padding: 0.55rem 1.4rem !important;
     min-height: 42px !important;
@@ -169,7 +210,7 @@ html, body, [class*="css"], * {
     background: #F5F2EE !important;
     border-color: #7A6148 !important;
     color: #6A5440 !important;
-    box-shadow: 0 2px 8px rgba(142,115,91,0.15) !important;
+    box-shadow: 0 4px 12px rgba(142,115,91,0.18) !important;
 }
 .stButton > button *:hover,
 .stDownloadButton > button *:hover {
@@ -179,7 +220,7 @@ html, body, [class*="css"], * {
 .stDownloadButton > button:active {
     background: #EDE8E0 !important;
     border-color: #7A6148 !important;
-    box-shadow: 0 1px 3px rgba(142,115,91,0.12) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
     transform: translateY(1px) !important;
     color: #6A5440 !important;
 }
@@ -292,6 +333,57 @@ html, body, [class*="css"], * {
 }
 [data-testid="stSidebar"] .stButton:nth-of-type(5) > button::before {
     display: none !important;
+}
+
+/* ── stSidebarNav ul/li/a（備用：某些 Streamlit 版本使用此結構）────── */
+[data-testid="stSidebarNav"] ul {
+    list-style: none !important;
+    padding: 0 8px !important;
+    margin: 0 !important;
+}
+[data-testid="stSidebarNav"] li {
+    margin: 8px 12px !important;
+}
+[data-testid="stSidebarNav"] li a,
+[data-testid="stSidebarNav"] li > div {
+    display: flex !important;
+    align-items: center !important;
+    border: none !important;
+    border-radius: 20px !important;
+    padding: 10px 14px !important;
+    color: #3A3228 !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    text-decoration: none !important;
+    background: transparent !important;
+    transition: background 0.15s !important;
+}
+[data-testid="stSidebarNav"] li a:hover,
+[data-testid="stSidebarNav"] li > div:hover {
+    background: rgba(142,115,91,0.08) !important;
+    color: #2C2218 !important;
+}
+[data-testid="stSidebarNav"] li[aria-selected="true"] a,
+[data-testid="stSidebarNav"] li[aria-selected="true"] > div,
+[data-testid="stSidebarNav"] li a[aria-current="page"],
+[data-testid="stSidebarNav"] li a.active {
+    background: #EAE7E2 !important;
+    color: #2C2218 !important;
+    font-weight: 700 !important;
+    border-radius: 20px !important;
+}
+
+/* ── 收納按鈕 header kind（棕色圖示）───────────────────────────────── */
+button[kind="header"],
+button[data-testid="baseButton-header"] {
+    color: #8E735B !important;
+    background: transparent !important;
+    z-index: 99999 !important;
+}
+button[kind="header"] svg,
+button[data-testid="baseButton-header"] svg {
+    stroke: #8E735B !important;
+    fill: none !important;
 }
 
 /* ── Headings ───────────────────────────────────────────────────────── */
