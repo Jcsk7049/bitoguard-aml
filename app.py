@@ -88,46 +88,47 @@ html, body, [class*="css"], * {
 
 /* ── 側邊欄收合 / 展開 按鈕 ─────────────────────────────────────────── */
 
-/* 所有可能包含壞掉 Material Icon 的 span，全部 display:none */
-[data-testid="stSidebarCollapseButton"] span,
-[data-testid="stSidebarCollapseButton"] button span,
-[data-testid="collapsedControl"] span,
-[data-testid="collapsedControl"] button span,
-section[data-testid="stSidebarNav"] span {
-    display: none !important;
+/* 徹底隱藏 Material Icon 壞字：直接針對 button 內所有文字節點 */
+[data-testid="stSidebarCollapseButton"] button *,
+[data-testid="collapsedControl"] button * {
+    font-size: 0 !important;
+    line-height: 0 !important;
+    letter-spacing: 0 !important;
+    color: transparent !important;
 }
 
-/* 收合/展開按鈕本體 */
+/* 但 SVG 要例外顯示 */
+[data-testid="stSidebarCollapseButton"] button svg,
+[data-testid="stSidebarCollapseButton"] button svg *,
+[data-testid="collapsedControl"] button svg,
+[data-testid="collapsedControl"] button svg * {
+    font-size: unset !important;
+    color: unset !important;
+    stroke: #5D5A54 !important;
+    width: 18px !important;
+    height: 18px !important;
+    display: block !important;
+}
+
+/* 按鈕本體：完全透明，不繼承任何全域 .stButton 樣式 */
 [data-testid="stSidebarCollapseButton"] button,
 [data-testid="collapsedControl"] button {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 8px !important;
-    width: 36px !important;
-    height: 36px !important;
-    padding: 0 !important;
-    min-height: unset !important;
+    all: unset !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
     transition: background 0.2s !important;
 }
 [data-testid="stSidebarCollapseButton"] button:hover,
 [data-testid="collapsedControl"] button:hover {
     background: rgba(93,90,84,0.10) !important;
-    box-shadow: none !important;
-    border: none !important;
-}
-[data-testid="stSidebarCollapseButton"] button svg,
-[data-testid="collapsedControl"] button svg {
-    stroke: #5D5A54 !important;
-    width: 20px !important;
-    height: 20px !important;
-    display: block !important;
 }
 [data-testid="collapsedControl"] {
-    padding: 0.75rem 0.4rem !important;
+    padding: 0.6rem 0.3rem !important;
 }
 [data-testid="stSidebar"] > div:first-child {
     padding: 2rem 1.6rem 1.5rem !important;
