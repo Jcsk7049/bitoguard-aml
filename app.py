@@ -88,13 +88,16 @@ html, body, [class*="css"], * {
 
 /* ── 側邊欄收合 / 展開 按鈕 ─────────────────────────────────────────── */
 
-/* 徹底隱藏壞掉的 Material Icon span（display:none 是唯一有效方法）*/
+/* 所有可能包含壞掉 Material Icon 的 span，全部 display:none */
+[data-testid="stSidebarCollapseButton"] span,
 [data-testid="stSidebarCollapseButton"] button span,
-[data-testid="collapsedControl"] button span {
+[data-testid="collapsedControl"] span,
+[data-testid="collapsedControl"] button span,
+section[data-testid="stSidebarNav"] span {
     display: none !important;
 }
 
-/* 兩顆按鈕共用：漢堡圖示 via ::after */
+/* 收合/展開按鈕本體 */
 [data-testid="stSidebarCollapseButton"] button,
 [data-testid="collapsedControl"] button {
     background: transparent !important;
@@ -109,15 +112,13 @@ html, body, [class*="css"], * {
     align-items: center !important;
     justify-content: center !important;
     transition: background 0.2s !important;
-    cursor: pointer !important;
 }
 [data-testid="stSidebarCollapseButton"] button:hover,
 [data-testid="collapsedControl"] button:hover {
     background: rgba(93,90,84,0.10) !important;
     box-shadow: none !important;
+    border: none !important;
 }
-
-/* 顯示 SVG 箭頭（Streamlit 原生，調色即可）*/
 [data-testid="stSidebarCollapseButton"] button svg,
 [data-testid="collapsedControl"] button svg {
     stroke: #5D5A54 !important;
@@ -125,8 +126,6 @@ html, body, [class*="css"], * {
     height: 20px !important;
     display: block !important;
 }
-
-/* 展開按鈕容器位置 */
 [data-testid="collapsedControl"] {
     padding: 0.75rem 0.4rem !important;
 }
@@ -212,7 +211,8 @@ html, body, [class*="css"], * {
     width: 100% !important;
 }
 
-/* 預設：完全透明，無邊框 */
+/* 預設：完全透明，無邊框（用高特異性選擇器蓋過全域 .stButton）*/
+[data-testid="stSidebar"] .element-container .stButton > button,
 [data-testid="stSidebar"] .stButton > button {
     width: 100% !important;
     text-align: left !important;
