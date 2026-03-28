@@ -526,10 +526,10 @@ with st.sidebar:
             {shield_svg}
         </div>
         <div>
-            <div style="font-size:16px;font-weight:800;color:#2C2720;letter-spacing:-0.3px;
-                        line-height:1.2;">BitoGuard</div>
-            <div style="font-size:10px;color:#A8A098;letter-spacing:1.5px;
-                        text-transform:uppercase;font-weight:600;">AML Platform</div>
+            <div style="font-size:17px;font-weight:900;color:#1E1A16;letter-spacing:-0.5px;
+                        line-height:1.15;">BitoGuard</div>
+            <div style="font-size:9.5px;color:#C0B8AE;letter-spacing:2.5px;
+                        text-transform:uppercase;font-weight:500;margin-top:2px;">AML Platform</div>
         </div>
     </div>
     <div style="border-top:1px solid #E0DDD5;margin:0 0 18px;"></div>
@@ -549,29 +549,29 @@ with st.sidebar:
     <div style="background:#FDFAF5;border:1px solid #D8D0C4;border-radius:14px;
                 padding:18px 18px 14px;margin-top:8px;
                 box-shadow:0 1px 4px rgba(0,0,0,0.04);">
-        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;
-                    color:#B0A898;margin-bottom:12px;">MODEL INFO</div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;
-                    border-bottom:1px solid #E0DDD5;">
+        <div style="font-size:0.8rem;letter-spacing:2px;text-transform:uppercase;
+                    color:#C0B4A8;margin-bottom:14px;font-weight:600;">MODEL INFO</div>
+        <div style="display:flex;justify-content:space-between;padding:8px 0;
+                    border-bottom:1px solid #EDE9E2;">
             <span style="font-size:12px;color:#8A8078;">演算法</span>
             <span style="font-size:12px;color:#4A4238;font-weight:600;">LightGBM</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;
-                    border-bottom:1px solid #E0DDD5;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;
+                    border-bottom:1px solid #EDE9E2;">
             <span style="font-size:12px;color:#8A8078;">OOF F1</span>
             <span style="font-size:12px;color:#5A8A6A;font-weight:700;">{m['f1']*100:.1f}%</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;
-                    border-bottom:1px solid #E0DDD5;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;
+                    border-bottom:1px solid #EDE9E2;">
             <span style="font-size:12px;color:#8A8078;">AUC</span>
             <span style="font-size:12px;color:#5878A8;font-weight:700;">{m['auc']*100:.1f}%</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;
-                    border-bottom:1px solid #E0DDD5;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;
+                    border-bottom:1px solid #EDE9E2;">
             <span style="font-size:12px;color:#8A8078;">準確度</span>
             <span style="font-size:12px;color:#7A7870;font-weight:700;">{m.get('accuracy', 0.9564)*100:.1f}%</span>
         </div>
-        <div style="display:flex;justify-content:space-between;padding:5px 0;">
+        <div style="display:flex;justify-content:space-between;padding:8px 0;">
             <span style="font-size:12px;color:#8A8078;">訓練日期</span>
             <span style="font-size:12px;color:#B0A898;">2026-03-26</span>
         </div>
