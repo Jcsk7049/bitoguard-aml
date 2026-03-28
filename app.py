@@ -163,17 +163,20 @@ html, body, [class*="css"], * {
     pointer-events: none !important;
     width: 0 !important; height: 0 !important;
 }
-/* 多層選擇器確保圓圈被隱藏（不同 Streamlit 版本結構不同）*/
-[data-testid="stRadio"] input + div,
+/* 隱藏視覺圓圈：只針對 baseweb radio 元件與 input 後緊接的 div */
 [data-testid="stRadio"] [data-baseweb="radio"],
-[data-testid="stRadio"] label > div:first-of-type,
-[data-testid="stRadio"] label > div:first-child {
+[data-testid="stRadio"] input[type="radio"] + div {
     display: none !important;
 }
 
-/* 隱藏側邊欄收合按鈕的壞掉 Material Icon 文字 */
+/* 側邊欄收合按鈕：用 font-size:0 藏掉 Material Icon 文字，再用 ::after 補 ← 符號 */
 [data-testid="stSidebarCollapseButton"] span {
-    display: none !important;
+    font-size: 0 !important;
+}
+[data-testid="stSidebarCollapseButton"] span::after {
+    content: "←" !important;
+    font-size: 16px !important;
+    color: #8A8078 !important;
 }
 
 /* Label 改為導航項目 */
