@@ -125,25 +125,17 @@ html, body, [class*="css"], * {
     opacity: 1 !important;
 }
 
-/* 收納狀態容器：貼齊左側，白底實體懸浮按鈕 */
+/* 收納狀態容器：完全隱藏，改用自訂懸浮按鈕取代 */
 [data-testid="collapsedControl"] {
-    z-index: 99999999 !important;
-    pointer-events: auto !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
     position: fixed !important;
     top: 15px !important;
     left: 0px !important;
-    font-size: 0 !important;
-    background-color: #FFFFFF !important;
-    border: 1.5px solid #8E735B !important;
-    border-radius: 0 8px 8px 0 !important;
-    box-shadow: 4px 0 10px rgba(0,0,0,0.1) !important;
-    width: 42px !important;
-    height: 42px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    z-index: -1 !important;
 }
 
 /* 容器 hover */
@@ -649,13 +641,42 @@ hr {
 # height=1（非0）確保瀏覽器不跳過 iframe 執行
 # window.parent.document 操作主頁面 DOM（同源可行）
 components.html("""
+<style>
+  #custom-toggle {
+    position: fixed;
+    top: 15px;
+    left: 0px;
+    width: 40px;
+    height: 40px;
+    background: white;
+    color: #8E735B;
+    border: 1.5px solid #8E735B;
+    border-radius: 0 8px 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 9999999;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    user-select: none;
+    transition: background 0.2s, color 0.2s;
+  }
+  #custom-toggle:hover {
+    background: #F5F2EE;
+  }
+</style>
+
+<div id="custom-toggle" title="開啟側邊欄">〉</div>
+
 <script>
 (function () {
-    var doc = window.parent.document;
-
-    // 觸發關鍵字（keyboard_double 比單獨 keyboard 更精準，避免誤殺）
+    var doc   = window.parent.document;
+    var btn   = document.getElementById('custom-toggle');
     var KEYWORDS = ['double_arrow', 'keyboard_double'];
 
+    /* ── 工具函式 ────────────────────────────────── */
     function hasKeyword(text) {
         if (!text) return false;
         for (var i = 0; i < KEYWORDS.length; i++) {
@@ -666,18 +687,15 @@ components.html("""
 
     function purge(root) {
         if (!root) return;
-
-        // (A) 純文字節點 → nodeValue 物理清空
-        var walker = doc.createTreeWalker(root, 4 /* SHOW_TEXT */, null, false);
-        var hits = [];
-        var n;
+        // 純文字節點清空
+        var walker = doc.createTreeWalker(root, 4, null, false);
+        var hits = []; var n;
         while ((n = walker.nextNode())) {
             if (hasKeyword(n.nodeValue)) hits.push(n);
         }
         hits.forEach(function (node) { node.nodeValue = ''; });
-
-        // (B) span / p 元素：若自身直接文字含關鍵字 → textContent 清空 + display:none
-        var tags = root.querySelectorAll ? root.querySelectorAll('span, p') : [];
+        // span/p 元素：直接文字含關鍵字 → 清空 + 隱藏
+        var tags = root.querySelectorAll('span, p');
         Array.prototype.forEach.call(tags, function (el) {
             var direct = '';
             el.childNodes.forEach(function (c) {
@@ -693,58 +711,74 @@ components.html("""
         });
     }
 
-    // 直接在父頁面 <head> 注入最高優先 CSS（每次 rerun 後重建）
     function injectCSS() {
         var old = doc.getElementById('_bito_fix');
-        if (old) old.remove();          // 每次重建，避免 Streamlit rerun 後失效
+        if (old) old.remove();
         var s = doc.createElement('style');
         s.id = '_bito_fix';
         s.textContent =
-            /* 收納按鈕容器 */
+            /* 展開按鈕（側邊欄內）保持正常 */
             '[data-testid="stSidebarCollapseButton"]{font-size:0!important;z-index:999999!important;}' +
-            /* 展開按鈕容器（fixed 左上） */
-            '[data-testid="collapsedControl"]{font-size:0!important;z-index:99999999!important;' +
-            'position:fixed!important;top:15px!important;left:0px!important;pointer-events:auto!important;' +
-            'background-color:#FFFFFF!important;border:1.5px solid #8E735B!important;' +
-            'border-radius:0 8px 8px 0!important;box-shadow:4px 0 10px rgba(0,0,0,.1)!important;' +
-            'width:42px!important;height:42px!important;' +
-            'display:flex!important;align-items:center!important;justify-content:center!important;' +
+            '[data-testid="stSidebarCollapseButton"] button{all:unset!important;display:flex!important;' +
+            'align-items:center!important;justify-content:center!important;' +
+            'width:36px!important;height:36px!important;border-radius:50%!important;' +
+            'cursor:pointer!important;background:transparent!important;' +
             'visibility:visible!important;opacity:1!important;}' +
-            '[data-testid="stHeader"]{background:none!important;pointer-events:none!important;}' +
-            /* 清除原生 span / svg */
-            '[data-testid="stSidebarCollapseButton"] span,[data-testid="stSidebarCollapseButton"] svg,' +
-            '[data-testid="collapsedControl"] span,[data-testid="collapsedControl"] svg{' +
-            'display:none!important;visibility:hidden!important;}' +
-            /* button 本體 */
-            '[data-testid="stSidebarCollapseButton"] button,' +
-            '[data-testid="collapsedControl"] button{' +
-            'all:unset!important;display:flex!important;align-items:center!important;' +
-            'justify-content:center!important;width:36px!important;height:36px!important;' +
-            'border-radius:50%!important;cursor:pointer!important;' +
-            'background:transparent!important;visibility:visible!important;opacity:1!important;}' +
-            /* hover */
-            '[data-testid="stSidebarCollapseButton"] button:hover,' +
-            '[data-testid="collapsedControl"] button:hover{' +
-            'background-color:rgba(142,115,91,.12)!important;}' +
-            /* ::before 手繪圖示 */
-            '[data-testid="stSidebarCollapseButton"] button::before{' +
-            'content:"\\3008"!important;font-size:22px!important;font-weight:bold!important;' +
-            'color:#8E735B!important;visibility:visible!important;display:block!important;' +
-            'font-family:sans-serif!important;}' +
-            '[data-testid="collapsedControl"] button::before{' +
-            'content:"\\3009"!important;font-size:24px!important;font-weight:bold!important;' +
-            'color:#8E735B!important;visibility:visible!important;opacity:1!important;' +
-            'display:flex!important;align-items:center!important;justify-content:center!important;' +
-            'font-family:sans-serif!important;z-index:99999999!important;position:relative!important;}' +
-            /* button ::after 清空 */
-            '[data-testid="stSidebarCollapseButton"] button::after,' +
-            '[data-testid="collapsedControl"] button::after{content:none!important;display:none!important;}';
+            '[data-testid="stSidebarCollapseButton"] button:hover{background-color:rgba(142,115,91,.12)!important;}' +
+            '[data-testid="stSidebarCollapseButton"] span,' +
+            '[data-testid="stSidebarCollapseButton"] svg{display:none!important;visibility:hidden!important;}' +
+            '[data-testid="stSidebarCollapseButton"] button::before{content:"\\3008"!important;' +
+            'font-size:22px!important;font-weight:bold!important;color:#8E735B!important;' +
+            'visibility:visible!important;display:block!important;font-family:sans-serif!important;}' +
+            '[data-testid="stSidebarCollapseButton"] button::after{content:none!important;display:none!important;}' +
+            /* 原生 collapsedControl 完全隱藏，由自訂按鈕取代 */
+            '[data-testid="collapsedControl"]{opacity:0!important;pointer-events:none!important;' +
+            'position:fixed!important;width:1px!important;height:1px!important;' +
+            'overflow:hidden!important;z-index:-1!important;}' +
+            /* stHeader 不擋點擊 */
+            '[data-testid="stHeader"]{background:none!important;pointer-events:none!important;}';
         (doc.head || doc.documentElement).appendChild(s);
     }
 
+    /* ── 側邊欄狀態偵測 ──────────────────────────── */
+    function isSidebarOpen() {
+        // Streamlit 展開時側邊欄 section 寬度 > 100px
+        var sidebar = doc.querySelector('[data-testid="stSidebar"]');
+        if (!sidebar) return false;
+        return sidebar.getBoundingClientRect().width > 100;
+    }
+
+    function updateToggle() {
+        if (isSidebarOpen()) {
+            btn.style.display = 'none';       // 側邊欄展開：隱藏自訂按鈕
+        } else {
+            btn.style.display = 'flex';       // 側邊欄收納：顯示自訂按鈕
+            btn.textContent = '〉';
+        }
+    }
+
+    /* ── 點擊：觸發原生收合按鈕 ─────────────────── */
+    function toggleSidebar() {
+        // 優先點 collapsedControl（展開側邊欄）
+        var nativeBtn = doc.querySelector('[data-testid="collapsedControl"] button');
+        if (!nativeBtn) {
+            // fallback：點 stSidebarCollapseButton（收起）
+            nativeBtn = doc.querySelector('[data-testid="stSidebarCollapseButton"] button');
+        }
+        if (nativeBtn) {
+            nativeBtn.click();
+            // 點後等 Streamlit 動畫完成再更新按鈕顯示
+            setTimeout(updateToggle, 400);
+        }
+    }
+
+    btn.addEventListener('click', toggleSidebar);
+
+    /* ── 初始化 ──────────────────────────────────── */
     function init() {
         injectCSS();
         purge(doc.body);
+        updateToggle();
 
         var observer = new MutationObserver(function (mutations) {
             var dirty = false;
@@ -755,7 +789,7 @@ components.html("""
                 }
                 if (m.addedNodes && m.addedNodes.length) dirty = true;
             }
-            if (dirty) { injectCSS(); purge(doc.body); }
+            if (dirty) { injectCSS(); purge(doc.body); updateToggle(); }
         });
 
         observer.observe(doc.body, { childList: true, subtree: true, characterData: true });
@@ -768,7 +802,7 @@ components.html("""
     }
 })();
 </script>
-""", height=1, scrolling=False)
+""", height=50, scrolling=False)
 
 # ── Lucide Light 圖示（stroke-width 1.5，內聯 SVG）──────────────────────────
 _ICONS: dict[str, str] = {
