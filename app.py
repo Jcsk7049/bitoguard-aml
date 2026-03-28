@@ -478,7 +478,34 @@ hr {
     align-items: flex-start;
     gap: 10px;
 }
-</style>""", unsafe_allow_html=True)
+</style>
+
+<script>
+(function() {
+    function fixCollapsedBtn() {
+        // 找到所有含 "arrow" 或 "keyboard" 文字的節點並隱藏
+        var btns = document.querySelectorAll(
+            '[data-testid="collapsedControl"] button, [data-testid="stSidebarCollapseButton"] button'
+        );
+        btns.forEach(function(btn) {
+            btn.childNodes.forEach(function(node) {
+                if (node.nodeType === 3) {
+                    // 純文字節點直接清空
+                    node.textContent = '';
+                } else if (node.nodeName === 'SPAN' && !node.querySelector('svg')) {
+                    node.style.display = 'none';
+                }
+            });
+        });
+    }
+    // 頁面載入後執行
+    document.addEventListener('DOMContentLoaded', fixCollapsedBtn);
+    // Streamlit 動態更新時也執行
+    var obs = new MutationObserver(fixCollapsedBtn);
+    obs.observe(document.body, { childList: true, subtree: true });
+})();
+</script>
+""", unsafe_allow_html=True)
 
 # ── Lucide Light 圖示（stroke-width 1.5，內聯 SVG）──────────────────────────
 _ICONS: dict[str, str] = {
