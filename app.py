@@ -125,7 +125,7 @@ html, body, [class*="css"], * {
     opacity: 1 !important;
 }
 
-/* 收納狀態容器：固定在左上角，z-index 最高確保不被遮擋 */
+/* 收納狀態容器：固定左上角，白底實體卡片外觀 */
 [data-testid="collapsedControl"] {
     z-index: 999999 !important;
     pointer-events: auto !important;
@@ -133,7 +133,14 @@ html, body, [class*="css"], * {
     top: 0.75rem !important;
     left: 0.75rem !important;
     font-size: 0 !important;
-    background: transparent !important;
+    background-color: #F5F2EE !important;
+    border-radius: 8px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    width: 40px !important;
+    height: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     visibility: visible !important;
     opacity: 1 !important;
 }
@@ -204,10 +211,13 @@ html, body, [class*="css"], * {
     font-size: 22px !important;
     color: #8E735B !important;
     visibility: visible !important;
+    opacity: 1 !important;
     display: block !important;
     font-weight: bold !important;
     line-height: 1 !important;
     font-family: sans-serif !important;
+    z-index: 999999 !important;
+    position: relative !important;
 }
 [data-testid="stSidebarCollapseButton"] button::after,
 [data-testid="collapsedControl"] button::after {
@@ -377,17 +387,19 @@ html, body, [class*="css"], * {
     display: none !important;
 }
 
-/* ── stSidebarNav ul/li/a（比例修正：移除邊距、48px 高、12px 縮排）── */
+/* ── stSidebarNav ul/li/a（比例修正：移除凸出、48px 高、12px 縮排）── */
 [data-testid="stSidebarNav"] ul {
     list-style: none !important;
-    padding: 0 !important;
+    padding: 0 12px !important;
     margin: 0 !important;
     width: 100% !important;
     box-sizing: border-box !important;
 }
 [data-testid="stSidebarNav"] li {
     margin: 4px 0 !important;
-    padding: 0 12px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 0 !important;
     width: 100% !important;
     box-sizing: border-box !important;
 }
@@ -680,7 +692,11 @@ components.html("""
             '[data-testid="stSidebarCollapseButton"]{font-size:0!important;z-index:999999!important;}' +
             /* 展開按鈕容器（fixed 左上） */
             '[data-testid="collapsedControl"]{font-size:0!important;z-index:999999!important;' +
-            'position:fixed!important;top:.75rem!important;left:.75rem!important;}' +
+            'position:fixed!important;top:.75rem!important;left:.75rem!important;' +
+            'background-color:#F5F2EE!important;border-radius:8px!important;' +
+            'box-shadow:0 2px 8px rgba(0,0,0,.15)!important;' +
+            'width:40px!important;height:40px!important;' +
+            'display:flex!important;align-items:center!important;justify-content:center!important;}' +
             /* 清除原生 span / svg */
             '[data-testid="stSidebarCollapseButton"] span,[data-testid="stSidebarCollapseButton"] svg,' +
             '[data-testid="collapsedControl"] span,[data-testid="collapsedControl"] svg{' +
