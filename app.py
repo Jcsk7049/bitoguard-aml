@@ -125,15 +125,12 @@ html, body, [class*="css"], * {
     visibility: visible !important;
     opacity: 1 !important;
 }
-
-/* 容器 hover：圓形棕色半透明底 */
 [data-testid="stSidebarCollapseButton"]:hover,
 [data-testid="collapsedControl"]:hover {
     background-color: rgba(142,115,91,0.1) !important;
     border-radius: 50% !important;
 }
-
-/* 容器不得有偽元素遮擋 */
+/* 容器層不加偽元素 */
 [data-testid="stSidebarCollapseButton"]::before,
 [data-testid="stSidebarCollapseButton"]::after,
 [data-testid="collapsedControl"]::before,
@@ -142,7 +139,7 @@ html, body, [class*="css"], * {
     display: none !important;
 }
 
-/* button 本體：all:unset 清除全域污染 */
+/* button 本體：all:unset + 定位 */
 [data-testid="stSidebarCollapseButton"] button,
 [data-testid="collapsedControl"] button {
     all: unset !important;
@@ -165,12 +162,18 @@ html, body, [class*="css"], * {
 [data-testid="stSidebarCollapseButton"] button:hover,
 [data-testid="collapsedControl"] button:hover {
     background-color: rgba(142,115,91,0.1) !important;
-    border-radius: 50% !important;
 }
 
-/* SVG 圖示：強制可見 + 棕色 */
-[data-testid="stSidebarCollapseButton"] button svg,
-[data-testid="collapsedControl"] button svg,
+/* span：抹除 Material Icon 殘留文字（font-size:0 + color:transparent）*/
+[data-testid="stSidebarCollapseButton"] span,
+[data-testid="collapsedControl"] span {
+    font-size: 0 !important;
+    color: transparent !important;
+    line-height: 0 !important;
+    display: none !important;
+}
+
+/* SVG：若原生圖示存在則保持可見 + 棕色（不隱藏）*/
 [data-testid="stSidebarCollapseButton"] svg,
 [data-testid="collapsedControl"] svg {
     display: block !important;
@@ -181,10 +184,7 @@ html, body, [class*="css"], * {
     stroke: #8E735B !important;
     fill: #8E735B !important;
     pointer-events: none !important;
-    z-index: 99999 !important;
 }
-[data-testid="stSidebarCollapseButton"] button svg *,
-[data-testid="collapsedControl"] button svg *,
 [data-testid="stSidebarCollapseButton"] svg *,
 [data-testid="collapsedControl"] svg * {
     stroke: #8E735B !important;
@@ -193,19 +193,27 @@ html, body, [class*="css"], * {
     opacity: 1 !important;
 }
 
-/* span：精準抹除 Material Icon 殘留文字，不影響 svg */
-[data-testid="stSidebarCollapseButton"] span,
-[data-testid="collapsedControl"] span {
-    font-size: 0 !important;
-    color: transparent !important;
-    line-height: 0 !important;
-    display: none !important;
+/* ::before：用「〈」手繪圖示，作為原生圖示不顯示時的 fallback */
+[data-testid="stSidebarCollapseButton"] button::before {
+    content: '〈' !important;
+    font-size: 20px !important;
+    color: #8E735B !important;
+    visibility: visible !important;
+    display: block !important;
+    font-weight: bold !important;
+    line-height: 1 !important;
 }
-
-/* button 內 ::before ::after 不遮擋 */
-[data-testid="stSidebarCollapseButton"] button::before,
+[data-testid="collapsedControl"] button::before {
+    content: '〉' !important;
+    font-size: 20px !important;
+    color: #8E735B !important;
+    visibility: visible !important;
+    display: block !important;
+    font-weight: bold !important;
+    line-height: 1 !important;
+}
+/* ::after 保持空 */
 [data-testid="stSidebarCollapseButton"] button::after,
-[data-testid="collapsedControl"] button::before,
 [data-testid="collapsedControl"] button::after {
     content: none !important;
     display: none !important;
@@ -617,66 +625,94 @@ components.html("""
 (function () {
     var doc = window.parent.document;
 
-    // 只清純文字節點，不動 span 的子元素（避免誤殺 SVG）
-    function purgeTextNodes(root) {
-        if (!root || !root.childNodes) return;
-        var walker = document.createTreeWalker
-            ? doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, null, false)
-            : null;
-        if (!walker) return;
-        var toBlank = [];
-        var n;
-        while ((n = walker.nextNode())) {
-            if (n.nodeValue && n.nodeValue.indexOf('double_arrow') !== -1) {
-                toBlank.push(n);
-            }
+    // 關鍵字：包含其中一個即觸發清除
+    var KEYWORDS = ['double_arrow', 'keyboard_double'];
+
+    function matchesKeyword(text) {
+        if (!text) return false;
+        for (var i = 0; i < KEYWORDS.length; i++) {
+            if (text.indexOf(KEYWORDS[i]) !== -1) return true;
         }
-        toBlank.forEach(function (node) { node.nodeValue = ''; });
+        return false;
     }
 
-    // 注入 CSS 到主頁面 <head>，作為最後一道防線
+    // 掃描並清除含關鍵字的元素
+    function purge(root) {
+        if (!root) return;
+
+        // (A) 純文字節點 → nodeValue 清空
+        var walker = doc.createTreeWalker(root, 4 /* SHOW_TEXT */, null, false);
+        var textNodes = [];
+        var n;
+        while ((n = walker.nextNode())) {
+            if (matchesKeyword(n.nodeValue)) textNodes.push(n);
+        }
+        textNodes.forEach(function (node) { node.nodeValue = ''; });
+
+        // (B) 元素節點（span / div 等）文字含關鍵字 → textContent 清空 + display:none
+        var elems = root.querySelectorAll ? root.querySelectorAll('span, div') : [];
+        Array.prototype.forEach.call(elems, function (el) {
+            // 只看自身直接文字，不含子 SVG
+            var directText = '';
+            el.childNodes.forEach(function (child) {
+                if (child.nodeType === 3) directText += child.nodeValue || '';
+            });
+            if (matchesKeyword(directText)) {
+                // 只清文字子節點，不刪除 SVG 子元素
+                el.childNodes.forEach(function (child) {
+                    if (child.nodeType === 3) child.nodeValue = '';
+                });
+                el.style.setProperty('display', 'none', 'important');
+            }
+        });
+    }
+
+    // 注入 CSS 到主頁面 <head>
     function injectCSS() {
         if (doc.getElementById('_bito_fix_css')) return;
         var s = doc.createElement('style');
         s.id = '_bito_fix_css';
-        s.textContent = [
-            '[data-testid="stSidebarCollapseButton"]{font-size:0!important;}',
-            '[data-testid="collapsedControl"]{font-size:0!important;}',
-            '[data-testid="stSidebarCollapseButton"] span,',
-            '[data-testid="collapsedControl"] span{',
-            'font-size:0!important;color:transparent!important;',
-            'line-height:0!important;display:none!important;}',
-            '[data-testid="stSidebarCollapseButton"] svg,',
-            '[data-testid="collapsedControl"] svg{',
-            'display:block!important;visibility:visible!important;',
-            'opacity:1!important;fill:#8E735B!important;stroke:#8E735B!important;',
-            'width:24px!important;height:24px!important;}'
-        ].join('');
+        s.textContent =
+            '[data-testid="stSidebarCollapseButton"]{font-size:0!important;}' +
+            '[data-testid="collapsedControl"]{font-size:0!important;}' +
+            '[data-testid="stSidebarCollapseButton"] span,' +
+            '[data-testid="collapsedControl"] span{' +
+            'font-size:0!important;color:transparent!important;' +
+            'line-height:0!important;display:none!important;}' +
+            '[data-testid="stSidebarCollapseButton"] svg,' +
+            '[data-testid="collapsedControl"] svg{' +
+            'display:block!important;visibility:visible!important;' +
+            'opacity:1!important;fill:#8E735B!important;stroke:#8E735B!important;' +
+            'width:24px!important;height:24px!important;}' +
+            '[data-testid="stSidebarCollapseButton"] button::before{' +
+            'content:"\\3008"!important;font-size:20px!important;' +
+            'color:#8E735B!important;visibility:visible!important;' +
+            'display:block!important;font-weight:bold!important;}' +
+            '[data-testid="collapsedControl"] button::before{' +
+            'content:"\\3009"!important;font-size:20px!important;' +
+            'color:#8E735B!important;visibility:visible!important;' +
+            'display:block!important;font-weight:bold!important;}';
         (doc.head || doc.documentElement).appendChild(s);
     }
 
-    function run() {
-        injectCSS();
-        purgeTextNodes(doc.body);
-    }
-
     function init() {
-        run();
+        injectCSS();
+        purge(doc.body);
+
         var observer = new MutationObserver(function (mutations) {
             var dirty = false;
             for (var i = 0; i < mutations.length; i++) {
                 var m = mutations[i];
-                // 文字節點直接改變
                 if (m.type === 'characterData') {
-                    if (m.target.nodeValue && m.target.nodeValue.indexOf('double_arrow') !== -1) {
+                    if (matchesKeyword(m.target.nodeValue)) {
                         m.target.nodeValue = '';
                     }
                 }
-                // 有新子節點加入
-                if (m.addedNodes && m.addedNodes.length > 0) { dirty = true; }
+                if (m.addedNodes && m.addedNodes.length > 0) dirty = true;
             }
-            if (dirty) purgeTextNodes(doc.body);
+            if (dirty) purge(doc.body);
         });
+
         observer.observe(doc.body, {
             childList: true,
             subtree: true,
@@ -684,7 +720,6 @@ components.html("""
         });
     }
 
-    // 等 parent document 準備好
     if (doc.readyState === 'loading') {
         doc.addEventListener('DOMContentLoaded', init);
     } else {
