@@ -731,9 +731,40 @@ components.html("""
         (doc.head || doc.documentElement).appendChild(s);
     }
 
+    /* ── 在父頁面建立〉懸浮按鈕 ── */
+    function createOpenBtn() {
+        if (doc.getElementById('sidebar-open-btn')) return;
+        var btn = doc.createElement('button');
+        btn.id = 'sidebar-open-btn';
+        btn.textContent = '\u3009';  // 〉
+        btn.style.cssText =
+            'position:fixed;top:12px;left:0;width:42px;height:42px;' +
+            'background:#FFFFFF;color:#8E735B;border:1.5px solid #8E735B;' +
+            'border-radius:0 8px 8px 0;display:none;align-items:center;' +
+            'justify-content:center;font-size:20px;font-weight:bold;' +
+            'font-family:sans-serif;cursor:pointer;z-index:9999999;' +
+            'box-shadow:2px 0 10px rgba(0,0,0,.1);outline:none;';
+        btn.addEventListener('click', function () {
+            var nb = doc.querySelector('[data-testid="collapsedControl"] button');
+            if (nb) nb.click();
+        });
+        doc.body.appendChild(btn);
+    }
+
+    function syncOpenBtn() {
+        var btn = doc.getElementById('sidebar-open-btn');
+        if (!btn) { createOpenBtn(); btn = doc.getElementById('sidebar-open-btn'); }
+        if (!btn) return;
+        var sb = doc.querySelector('[data-testid="stSidebar"]');
+        var open = sb && sb.getBoundingClientRect().width > 100;
+        btn.style.display = open ? 'none' : 'flex';
+    }
+
     function init() {
         injectCSS();
         purge(doc.body);
+        createOpenBtn();
+        syncOpenBtn();
 
         var obs = new MutationObserver(function (mutations) {
             var dirty = false;
@@ -742,9 +773,9 @@ components.html("""
                 if (m.type === 'characterData' && hasKeyword(m.target.nodeValue)) m.target.nodeValue = '';
                 if (m.addedNodes && m.addedNodes.length) dirty = true;
             }
-            if (dirty) { injectCSS(); purge(doc.body); }
+            if (dirty) { injectCSS(); purge(doc.body); syncOpenBtn(); }
         });
-        obs.observe(doc.body, { childList: true, subtree: true, characterData: true });
+        obs.observe(doc.body, { childList: true, subtree: true, characterData: true, attributes: true });
     }
 
     if (doc.readyState === 'loading') { doc.addEventListener('DOMContentLoaded', init); }
@@ -956,34 +987,7 @@ with st.sidebar:
         st.rerun()
 
 
-# ── 純 HTML 懸浮按鈕：直接在主頁面 document 執行 onclick，無跨 frame 問題 ──
-st.markdown("""
-<button id="sidebar-open-btn"
-  onclick="
-    var b=document.querySelector('[data-testid=\\"collapsedControl\\"] button');
-    if(b){b.click();document.getElementById('sidebar-open-btn').style.display='none';}
-  "
-  style="position:fixed;top:12px;left:0;width:42px;height:42px;
-         background:#FFFFFF;color:#8E735B;border:1.5px solid #8E735B;
-         border-radius:0 8px 8px 0;display:flex;align-items:center;
-         justify-content:center;font-size:20px;font-weight:bold;
-         font-family:sans-serif;cursor:pointer;z-index:9999999;
-         box-shadow:2px 0 10px rgba(0,0,0,.1);outline:none;"
->〉</button>
-<script>
-(function(){
-  function syncBtn(){
-    var btn=document.getElementById('sidebar-open-btn');
-    if(!btn) return;
-    var sb=document.querySelector('[data-testid="stSidebar"]');
-    var open=sb && sb.getBoundingClientRect().width>100;
-    btn.style.display=open?'none':'flex';
-  }
-  syncBtn();
-  new MutationObserver(syncBtn).observe(document.body,{childList:true,subtree:true,attributes:true});
-})();
-</script>
-""", unsafe_allow_html=True)
+# 〉懸浮按鈕由上方 components.html 的 createOpenBtn() 在父頁面 DOM 直接建立
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 頁面 1：總覽儀表板
