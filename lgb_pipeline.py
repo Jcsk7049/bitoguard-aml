@@ -441,6 +441,7 @@ def main():
     oof_prec = precision_score(y, oof_pred, zero_division=0)
     oof_rec  = recall_score(y, oof_pred, zero_division=0)
     oof_auc  = roc_auc_score(y, oof_probs)
+    oof_acc  = (oof_pred == y).mean()
     tn, fp, fn, tp = confusion_matrix(y, oof_pred, labels=[0, 1]).ravel()
 
     print("\n" + "=" * 60)
@@ -491,6 +492,7 @@ def main():
             "precision": round(float(oof_prec), 4),
             "recall":    round(float(oof_rec), 4),
             "threshold": round(float(best_t), 2),
+            "accuracy":  round(float(oof_acc), 4),
         },
         "submission": {
             "total": int(len(submission)),

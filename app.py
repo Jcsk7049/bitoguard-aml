@@ -43,7 +43,7 @@ _DEMO_REPORT = {
                  "deposit_only_flag","twd_deposit_ratio","crypto_net_flow",
                  "tx_per_day","total_volume","swap_to_twd_ratio"],
     "oof_metrics": {"auc": 0.8248, "f1": 0.2385, "precision": 0.1632,
-                    "recall": 0.4427, "threshold": 0.5},
+                    "recall": 0.4427, "threshold": 0.5, "accuracy": 0.9091},
     "submission":  {"total": 12753, "blacklist": 1147, "normal": 11606},
     "folds": [
         {"fold":1,"threshold":0.51,"precision":0.2157,"recall":0.3933,"f1":0.2786,"auc":0.846, "val_pos":328},
