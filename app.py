@@ -105,7 +105,7 @@ html, body, [class*="css"], * {
     color: #6A6058 !important;
 }
 
-/* ── 按鈕（琥珀深金主色 + 立體投影）────────────────────────────────── */
+/* ── 全域按鈕（琥珀深金 + 純白文字）────────────────────────────────── */
 .stButton > button,
 .stDownloadButton > button {
     border-radius: 12px !important;
@@ -113,14 +113,16 @@ html, body, [class*="css"], * {
     color: #FFFFFF !important;
     border: 1px solid #7A6148 !important;
     font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'Inter', sans-serif !important;
-    font-size: 13px !important;
+    font-size: 13.5px !important;
     font-weight: 600 !important;
-    letter-spacing: 0.5px !important;
-    box-shadow: 0 4px 14px 0 rgba(142, 115, 91, 0.39) !important;
+    letter-spacing: 0.4px !important;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
     transition: background 0.18s, box-shadow 0.18s, transform 0.12s !important;
-    padding: 0.45rem 1.2rem !important;
+    padding: 0.6rem 1.4rem !important;
+    min-height: 42px !important;
+    line-height: 1.4 !important;
 }
-/* 強制所有子元素繼承純白文字 */
+/* 強制子元素白色（防止 Streamlit 內部 span 覆蓋）*/
 .stButton > button *,
 .stDownloadButton > button * {
     color: #FFFFFF !important;
@@ -128,14 +130,14 @@ html, body, [class*="css"], * {
 .stButton > button:hover,
 .stDownloadButton > button:hover {
     background: #7A6148 !important;
-    box-shadow: 0 6px 20px 0 rgba(142, 115, 91, 0.50) !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.20) !important;
     border-color: #6A5238 !important;
     color: #FFFFFF !important;
 }
 .stButton > button:active,
 .stDownloadButton > button:active {
     background: #6A5238 !important;
-    box-shadow: 0 2px 6px 0 rgba(142, 115, 91, 0.25) !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.10) !important;
     transform: translateY(1px) !important;
     color: #FFFFFF !important;
 }
@@ -173,7 +175,7 @@ html, body, [class*="css"], * {
     width: 100% !important;
 }
 
-/* 基礎 Ghost 樣式 */
+/* 基礎 Ghost 樣式（覆蓋全域按鈕）*/
 [data-testid="stSidebar"] .stButton > button {
     width: 100% !important;
     text-align: left !important;
@@ -188,6 +190,7 @@ html, body, [class*="css"], * {
     letter-spacing: 0.2px !important;
     padding: 10px 16px 10px 42px !important;
     margin: 0 !important;
+    min-height: unset !important;
     position: relative !important;
     transition: background 0.2s, color 0.2s !important;
 }
