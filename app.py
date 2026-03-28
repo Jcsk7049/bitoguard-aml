@@ -154,91 +154,46 @@ html, body, [class*="css"], * {
     color: #3A3228 !important;
 }
 
-/* ── Sidebar Radio → 導航選單（隱藏圓點，改為左線型 Tab）───────────── */
-
-/* 隱藏 input 本體 */
-[data-testid="stRadio"] input[type="radio"] {
-    position: absolute !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-    width: 0 !important; height: 0 !important;
-}
-/* 隱藏視覺圓圈：只針對 baseweb radio 元件與 input 後緊接的 div */
-[data-testid="stRadio"] [data-baseweb="radio"],
-[data-testid="stRadio"] input[type="radio"] + div {
-    display: none !important;
-}
-
-/* 側邊欄收合按鈕：用 font-size:0 藏掉 Material Icon 文字，再用 ::after 補 ← 符號 */
-[data-testid="stSidebarCollapseButton"] span {
-    font-size: 0 !important;
-}
-[data-testid="stSidebarCollapseButton"] span::after {
-    content: "←" !important;
-    font-size: 16px !important;
-    color: #8A8078 !important;
-}
-
-/* Label 改為導航項目 */
-[data-testid="stRadio"] label {
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-    padding: 9px 14px 9px 16px !important;
-    margin: 2px 0 !important;
-    border-radius: 10px !important;
-    border-left: 3px solid transparent !important;
-    cursor: pointer !important;
-    transition: background 0.15s, border-color 0.15s !important;
+/* ── Sidebar 導航按鈕（覆蓋主按鈕樣式，改為左線型 Tab）─────────────── */
+[data-testid="stSidebar"] .stButton > button {
+    width: 100% !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    background: transparent !important;
     color: #7A7068 !important;
+    border: none !important;
+    border-left: 3px solid transparent !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
     font-size: 13.5px !important;
     font-weight: 500 !important;
-    line-height: 1.4 !important;
+    padding: 9px 14px 9px 13px !important;
+    margin: 2px 0 !important;
+    letter-spacing: 0.2px !important;
+    transition: background 0.15s, border-color 0.15s !important;
 }
-[data-testid="stRadio"] label:hover {
+[data-testid="stSidebar"] .stButton > button:hover {
     background: rgba(142,115,91,0.09) !important;
-    border-left-color: rgba(142,115,91,0.35) !important;
+    border-left-color: rgba(142,115,91,0.40) !important;
     color: #3A3228 !important;
+    box-shadow: none !important;
 }
-/* 選取狀態：深色左線 + 淡金底 */
-[data-testid="stRadio"] label:has(input:checked) {
-    background: rgba(142,115,91,0.13) !important;
-    border-left-color: #8E735B !important;
-    color: #2C2010 !important;
-    font-weight: 600 !important;
+[data-testid="stSidebar"] .stButton > button:active {
+    transform: none !important;
+    box-shadow: none !important;
 }
-
-/* Icon（::before 用 SVG data URI，依序對應四個導航項）*/
-[data-testid="stRadio"] label::before {
-    content: "" !important;
-    display: inline-block !important;
-    width: 16px !important; height: 16px !important;
-    flex-shrink: 0 !important;
-    background-repeat: no-repeat !important;
-    background-size: contain !important;
-    background-position: center !important;
-    opacity: 0.65 !important;
-    transition: opacity 0.15s !important;
-}
-[data-testid="stRadio"] label:hover::before,
-[data-testid="stRadio"] label:has(input:checked)::before {
-    opacity: 1 !important;
-}
-/* 數據總覽 — Layout */
-[data-testid="stRadio"] label:nth-of-type(1)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E735B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Cline x1='3' y1='9' x2='21' y2='9'/%3E%3Cline x1='9' y1='21' x2='9' y2='9'/%3E%3C/svg%3E") !important;
-}
-/* 風險查詢 — Search */
-[data-testid="stRadio"] label:nth-of-type(2)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E735B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") !important;
-}
-/* 模型表現 — Bar Chart */
-[data-testid="stRadio"] label:nth-of-type(3)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E735B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='20' x2='18' y2='10'/%3E%3Cline x1='12' y1='20' x2='12' y2='4'/%3E%3Cline x1='6' y1='20' x2='6' y2='14'/%3E%3C/svg%3E") !important;
-}
-/* 預測結果 — Database */
-[data-testid="stRadio"] label:nth-of-type(4)::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238E735B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='9' ry='3'/%3E%3Cpath d='M21 12c0 1.66-4 3-9 3s-9-1.34-9-3'/%3E%3Cpath d='M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5'/%3E%3C/svg%3E") !important;
+/* 刷新資料按鈕獨立樣式（側邊欄最後一個按鈕）*/
+[data-testid="stSidebar"] .stButton:last-of-type > button {
+    background: rgba(142,115,91,0.10) !important;
+    border: 1px solid #C8B8A4 !important;
+    border-left: 1px solid #C8B8A4 !important;
+    border-radius: 10px !important;
+    color: #6A5848 !important;
+    font-size: 12px !important;
+    box-shadow: none !important;
+    margin-top: 6px !important;
+    justify-content: center !important;
+    text-align: center !important;
 }
 
 /* ── Headings ───────────────────────────────────────────────────────── */
@@ -546,12 +501,29 @@ with st.sidebar:
     <div style="border-top:1px solid #E0DDD5;margin:0 0 18px;"></div>
     """, unsafe_allow_html=True)
 
-    page = st.radio("", [
-        "數據總覽",
-        "風險查詢",
-        "模型表現",
-        "預測結果",
-    ], label_visibility="collapsed")
+    if "page" not in st.session_state:
+        st.session_state["page"] = "數據總覽"
+
+    _NAV = ["數據總覽", "風險查詢", "模型表現", "預測結果"]
+    _NAV_ICO = ["layers", "search", "bar-chart", "database"]
+
+    # 注入 active 按鈕樣式（用 nth-of-type 定位當前頁）
+    _idx = _NAV.index(st.session_state["page"]) + 1
+    st.markdown(f"""<style>
+[data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button {{
+    background: rgba(142,115,91,0.13) !important;
+    border-left: 3px solid #8E735B !important;
+    color: #2C2010 !important;
+    font-weight: 600 !important;
+}}
+</style>""", unsafe_allow_html=True)
+
+    for _label in _NAV:
+        if st.button(_label, key=f"_nav_{_label}"):
+            st.session_state["page"] = _label
+            st.rerun()
+
+    page = st.session_state["page"]
 
     st.markdown('<div style="border-top:1px solid #E0DDD5;margin:18px 0 14px;"></div>',
                 unsafe_allow_html=True)
