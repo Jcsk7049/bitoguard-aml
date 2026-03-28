@@ -610,61 +610,73 @@ hr {
 """, unsafe_allow_html=True)
 
 # ── 注入 MutationObserver：物理移除 double_arrow 殘留文字 ──────────────────────
-# components.html 在獨立 iframe 執行，透過 window.parent.document 操作主頁面 DOM
+# height=1（非0）確保瀏覽器不跳過 iframe 執行
+# window.parent.document 操作主頁面 DOM（同源可行）
 components.html("""
 <script>
 (function () {
     var doc = window.parent.document;
 
-    function purgeDoubleArrow(root) {
-        if (!root) return;
-
-        // 1. 物理清除所有包含 double_arrow 的純文字節點
-        var walker = doc.createTreeWalker(
-            root,
-            NodeFilter.SHOW_TEXT,
-            {
-                acceptNode: function (node) {
-                    return (node.nodeValue && node.nodeValue.indexOf('double_arrow') !== -1)
-                        ? NodeFilter.FILTER_ACCEPT
-                        : NodeFilter.FILTER_SKIP;
-                }
-            },
-            false
-        );
+    // 只清純文字節點，不動 span 的子元素（避免誤殺 SVG）
+    function purgeTextNodes(root) {
+        if (!root || !root.childNodes) return;
+        var walker = document.createTreeWalker
+            ? doc.createTreeWalker(root, 4 /* NodeFilter.SHOW_TEXT */, null, false)
+            : null;
+        if (!walker) return;
         var toBlank = [];
         var n;
-        while ((n = walker.nextNode())) { toBlank.push(n); }
-        toBlank.forEach(function (node) { node.nodeValue = ''; });
-
-        // 2. 隱藏包含 double_arrow 文字的 span 元素（Material Icon fallback）
-        var spans = root.querySelectorAll ? root.querySelectorAll('span') : [];
-        Array.prototype.forEach.call(spans, function (sp) {
-            if (sp.textContent.indexOf('double_arrow') !== -1) {
-                sp.style.cssText += ';font-size:0!important;visibility:hidden!important;';
-                sp.textContent = '';
+        while ((n = walker.nextNode())) {
+            if (n.nodeValue && n.nodeValue.indexOf('double_arrow') !== -1) {
+                toBlank.push(n);
             }
-        });
+        }
+        toBlank.forEach(function (node) { node.nodeValue = ''; });
+    }
+
+    // 注入 CSS 到主頁面 <head>，作為最後一道防線
+    function injectCSS() {
+        if (doc.getElementById('_bito_fix_css')) return;
+        var s = doc.createElement('style');
+        s.id = '_bito_fix_css';
+        s.textContent = [
+            '[data-testid="stSidebarCollapseButton"]{font-size:0!important;}',
+            '[data-testid="collapsedControl"]{font-size:0!important;}',
+            '[data-testid="stSidebarCollapseButton"] span,',
+            '[data-testid="collapsedControl"] span{',
+            'font-size:0!important;color:transparent!important;',
+            'line-height:0!important;display:none!important;}',
+            '[data-testid="stSidebarCollapseButton"] svg,',
+            '[data-testid="collapsedControl"] svg{',
+            'display:block!important;visibility:visible!important;',
+            'opacity:1!important;fill:#8E735B!important;stroke:#8E735B!important;',
+            'width:24px!important;height:24px!important;}'
+        ].join('');
+        (doc.head || doc.documentElement).appendChild(s);
+    }
+
+    function run() {
+        injectCSS();
+        purgeTextNodes(doc.body);
     }
 
     function init() {
-        purgeDoubleArrow(doc.body);
-
+        run();
         var observer = new MutationObserver(function (mutations) {
-            var needsScan = false;
-            mutations.forEach(function (m) {
-                // 有新 DOM 節點加入時標記掃描
-                if (m.addedNodes.length > 0) needsScan = true;
-                // 文字節點內容改變時直接清除
-                if (m.type === 'characterData' &&
-                    m.target.nodeValue &&
-                    m.target.nodeValue.indexOf('double_arrow') !== -1) {
-                    m.target.nodeValue = '';
+            var dirty = false;
+            for (var i = 0; i < mutations.length; i++) {
+                var m = mutations[i];
+                // 文字節點直接改變
+                if (m.type === 'characterData') {
+                    if (m.target.nodeValue && m.target.nodeValue.indexOf('double_arrow') !== -1) {
+                        m.target.nodeValue = '';
+                    }
                 }
-            });
-            if (needsScan) purgeDoubleArrow(doc.body);
+                // 有新子節點加入
+                if (m.addedNodes && m.addedNodes.length > 0) { dirty = true; }
+            }
+            if (dirty) purgeTextNodes(doc.body);
         });
-
         observer.observe(doc.body, {
             childList: true,
             subtree: true,
@@ -672,6 +684,7 @@ components.html("""
         });
     }
 
+    // 等 parent document 準備好
     if (doc.readyState === 'loading') {
         doc.addEventListener('DOMContentLoaded', init);
     } else {
@@ -679,7 +692,7 @@ components.html("""
     }
 })();
 </script>
-""", height=0)
+""", height=1, scrolling=False)
 
 # ── Lucide Light 圖示（stroke-width 1.5，內聯 SVG）──────────────────────────
 _ICONS: dict[str, str] = {
