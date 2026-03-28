@@ -10,6 +10,7 @@ SageMaker 部署版本
     https://<notebook-name>.notebook.<region>.sagemaker.aws/proxy/8501/
 """
 
+import datetime
 import json
 import warnings
 from pathlib import Path
@@ -24,10 +25,6 @@ warnings.filterwarnings("ignore")
 
 # ── 路徑設定 ─────────────────────────────────────────────────────────────────
 _HERE = Path(__file__).resolve().parent
-SUBMISSION = _HERE / "submission_with_prob.csv"
-OOF_PRED   = _HERE / "oof_predictions.csv"
-FEAT_IMP   = _HERE / "feature_importance.csv"
-FEAT_CACHE = _HERE / "feature_cache_v2.parquet"
 
 # ── 內嵌 fallback 資料（確保 Streamlit Cloud 無檔案時仍可運作）────────────────
 _DEMO_REPORT = {
@@ -63,31 +60,327 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown("""
-<style>
-.metric-card {
-    background: linear-gradient(135deg, #1e3a5f, #2d6a4f);
-    border-radius: 12px; padding: 18px 22px; color: white; margin-bottom: 8px;
+# ── 全域 CSS 注入 ─────────────────────────────────────────────────────────────
+st.markdown("""<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+
+/* ── 全域字體、行高與背景 ────────────────────────────────────────────── */
+html, body, [class*="css"], * {
+    font-family: 'Noto Sans TC', 'Microsoft JhengHei', '微軟正黑體', 'Inter', sans-serif !important;
+    line-height: 1.7 !important;
+    -webkit-font-smoothing: antialiased !important;
 }
-.metric-title { font-size: 13px; opacity: 0.8; margin-bottom: 4px; }
-.metric-value { font-size: 32px; font-weight: bold; }
-.metric-sub   { font-size: 12px; opacity: 0.7; margin-top: 2px; }
-.blacklist-badge {
-    background: #c0392b; color: white; padding: 4px 12px;
-    border-radius: 20px; font-weight: bold; font-size: 14px;
+.stApp {
+    background-color: #F9F8F6 !important;
 }
-.normal-badge {
-    background: #27ae60; color: white; padding: 4px 12px;
-    border-radius: 20px; font-weight: bold; font-size: 14px;
+
+/* ── Sidebar ────────────────────────────────────────────────────────── */
+[data-testid="stSidebar"] {
+    background-color: #F2F0EB !important;
+    border-right: 1px solid #E0DDD5 !important;
 }
-</style>
-""", unsafe_allow_html=True)
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label {
+    color: #6A6058 !important;
+}
+
+/* ── 按鈕（圓角 12px + box-shadow）──────────────────────────────────── */
+.stButton > button,
+.stDownloadButton > button {
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(60, 50, 40, 0.10) !important;
+    background: #EDE9E2 !important;
+    color: #3C3228 !important;
+    border: 1px solid #C8C0B0 !important;
+    font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'Inter', sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.5px !important;
+    transition: background 0.2s, box-shadow 0.2s, border-color 0.2s !important;
+    padding: 0.45rem 1.2rem !important;
+}
+.stButton > button:hover,
+.stDownloadButton > button:hover {
+    background: #E4DED4 !important;
+    box-shadow: 0 4px 14px rgba(60, 50, 40, 0.16) !important;
+    border-color: #7A9B8A !important;
+    color: #2A2018 !important;
+}
+.stButton > button:active,
+.stDownloadButton > button:active {
+    box-shadow: 0 1px 4px rgba(60, 50, 40, 0.08) !important;
+    transform: translateY(1px) !important;
+}
+
+/* ── 文字輸入（圓角 12px）────────────────────────────────────────────── */
+[data-testid="stTextInput"] input {
+    background: #FDFCFA !important;
+    border: 1px solid #D8D2C8 !important;
+    border-radius: 12px !important;
+    color: #3A3228 !important;
+    box-shadow: inset 0 1px 3px rgba(60,50,40,0.06) !important;
+    font-size: 14px !important;
+    letter-spacing: 0.3px !important;
+    padding: 0.5rem 1rem !important;
+}
+[data-testid="stTextInput"] input:focus {
+    border-color: #7A9B8A !important;
+    box-shadow: 0 0 0 3px rgba(122,155,138,0.15), inset 0 1px 3px rgba(60,50,40,0.06) !important;
+    outline: none !important;
+}
+
+/* ── Selectbox（圓角 12px）──────────────────────────────────────────── */
+[data-testid="stSelectbox"] > div > div {
+    background: #FDFCFA !important;
+    border: 1px solid #D8D2C8 !important;
+    border-radius: 12px !important;
+    color: #3A3228 !important;
+}
+
+/* ── Radio ──────────────────────────────────────────────────────────── */
+[data-testid="stRadio"] label {
+    color: #6A6058 !important;
+    font-size: 14px !important;
+}
+[data-testid="stRadio"] label:hover {
+    color: #3A3228 !important;
+}
+
+/* ── Headings ───────────────────────────────────────────────────────── */
+h1 { color: #2C2720 !important; font-weight: 700 !important;
+     letter-spacing: -0.6px !important; line-height: 1.2 !important; }
+h2 { color: #3A3228 !important; font-weight: 600 !important;
+     letter-spacing: -0.3px !important; line-height: 1.35 !important; }
+h3 { color: #4A4238 !important; font-weight: 600 !important;
+     letter-spacing: -0.2px !important; line-height: 1.4 !important; }
+
+/* ── Markdown 文字 ──────────────────────────────────────────────────── */
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] li {
+    color: #6A6058 !important;
+    font-size: 14px !important;
+    line-height: 1.75 !important;
+    letter-spacing: 0.15px !important;
+}
+
+/* ── Caption ────────────────────────────────────────────────────────── */
+[data-testid="stCaptionContainer"] p {
+    color: #A8A098 !important;
+    font-size: 12px !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* ── Dividers ───────────────────────────────────────────────────────── */
+hr {
+    border: none !important;
+    border-top: 1px solid #E0DDD5 !important;
+    margin: 20px 0 !important;
+}
+
+/* ── DataFrames ─────────────────────────────────────────────────────── */
+[data-testid="stDataFrame"] {
+    border: 1px solid #E0DDD5 !important;
+    border-radius: 4px !important;
+    overflow: hidden !important;
+}
+[data-testid="stDataFrame"] th {
+    background: #EEEBe4 !important;
+    color: #8A8078 !important;
+    font-size: 12px !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* ── Checkbox ───────────────────────────────────────────────────────── */
+[data-testid="stCheckbox"] label { color: #6A6058 !important; }
+
+/* ── Native st.metric override ──────────────────────────────────────── */
+[data-testid="stMetric"] {
+    background: #F3F1EC !important;
+    border: 1px solid #E0DDD5 !important;
+    border-radius: 4px !important;
+    padding: 14px 18px !important;
+}
+[data-testid="stMetricLabel"] p { color: #8A8078 !important; font-size: 12px !important; }
+[data-testid="stMetricValue"]   { color: #2C2720 !important; }
+
+/* ── 自訂元件類別 ────────────────────────────────────────────────────── */
+.bg-card {
+    background: #F3F1EC;
+    border: 1px solid #E0DDD5;
+    border-radius: 16px;
+    padding: 22px 24px;
+    margin-bottom: 10px;
+}
+.kpi-strip {
+    background: #F3F1EC;
+    border: 1px solid #E0DDD5;
+    border-radius: 16px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 10px;
+}
+.kpi-accent { width: 3px; height: 42px; border-radius: 3px; flex-shrink: 0; }
+.kpi-label  { font-size: 10px; color: #A8A098; text-transform: uppercase;
+               letter-spacing: 1.5px; margin-bottom: 4px; font-weight: 600; }
+.kpi-value  { font-size: 26px; font-weight: 800; line-height: 1;
+               color: #2C2720; letter-spacing: -0.8px; }
+.kpi-sub    { font-size: 11px; color: #B8B0A4; margin-top: 4px;
+               letter-spacing: 0.2px; line-height: 1.5; }
+
+.section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    color: #B0A898;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    margin-top: 4px;
+}
+.section-label::before {
+    content: "";
+    display: inline-block;
+    width: 16px;
+    height: 2px;
+    background: #C8C0B4;
+    border-radius: 1px;
+    flex-shrink: 0;
+}
+.page-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #2C2720;
+    letter-spacing: -0.8px;
+    line-height: 1.15;
+    margin-bottom: 4px;
+}
+.page-subtitle {
+    font-size: 11px;
+    color: #B0A898;
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    margin-bottom: 28px;
+    font-weight: 500;
+}
+
+/* ── 自訂提示框（取代 st.info / st.warning / st.error）──────────────── */
+.info-div {
+    background: #EEF2F8;
+    border: 1px solid #C8D0E4;
+    border-left: 4px solid #6878B8;
+    border-radius: 12px;
+    padding: 13px 18px;
+    color: #5060A0;
+    font-size: 13px;
+    line-height: 1.7;
+    letter-spacing: 0.15px;
+    margin: 12px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.warn-div {
+    background: #F8F3E8;
+    border: 1px solid #DCC898;
+    border-left: 4px solid #A88840;
+    border-radius: 12px;
+    padding: 13px 18px;
+    color: #806830;
+    font-size: 13px;
+    line-height: 1.7;
+    letter-spacing: 0.15px;
+    margin: 12px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+.err-div {
+    background: #F8EEEE;
+    border: 1px solid #DCC0C0;
+    border-left: 4px solid #A86868;
+    border-radius: 12px;
+    padding: 13px 18px;
+    color: #905050;
+    font-size: 13px;
+    line-height: 1.7;
+    letter-spacing: 0.15px;
+    margin: 12px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+</style>""", unsafe_allow_html=True)
+
+# ── Lucide Light 圖示（stroke-width 1.5，內聯 SVG）──────────────────────────
+_ICONS: dict[str, str] = {
+    "shield":         '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    "bar-chart":      '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+    "search":         '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    "trending-up":    '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+    "file-text":      '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+    "refresh-cw":     '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+    "alert-triangle": '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    "info":           '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
+    "x-circle":       '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>',
+    "download":       '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    "database":       '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
+    "git-branch":     '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+    "cpu":            '<rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/>',
+    "message-circle": '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    "activity":       '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+    "layers":         '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+}
+
+def _icon(name: str, size: int = 14, color: str = "#8A8078") -> str:
+    """產生 Lucide Light 風格的內聯 SVG 圖示（stroke-width 1.5）。"""
+    paths = _ICONS.get(name, "")
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" '
+        f'viewBox="0 0 24 24" fill="none" stroke="{color}" '
+        f'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" '
+        f'style="display:inline-block;vertical-align:middle;flex-shrink:0;">'
+        f'{paths}</svg>'
+    )
+
+# ── Plotly 暗色主題基底（所有圖表共用）──────────────────────────────────────
+_CL = dict(
+    template="plotly_white",
+    paper_bgcolor="#F3F1EC",
+    plot_bgcolor="#F9F8F6",
+    font=dict(color="#6A6058", family="Microsoft JhengHei, Inter, sans-serif", size=12),
+    xaxis=dict(gridcolor="#E8E4DC", linecolor="#D4CEC4", zerolinecolor="#D4CEC4"),
+    yaxis=dict(gridcolor="#E8E4DC", linecolor="#D4CEC4", zerolinecolor="#D4CEC4"),
+)
+
+# ── 自訂提示框 helper ─────────────────────────────────────────────────────────
+def _info(msg: str) -> None:
+    ico = _icon("info", 15, "#6878B8")
+    st.markdown(f'<div class="info-div">{ico}<span>{msg}</span></div>', unsafe_allow_html=True)
+
+def _warn(msg: str) -> None:
+    ico = _icon("alert-triangle", 15, "#A88840")
+    st.markdown(f'<div class="warn-div">{ico}<span>{msg}</span></div>', unsafe_allow_html=True)
+
+def _err(msg: str) -> None:
+    ico = _icon("x-circle", 15, "#A86868")
+    st.markdown(f'<div class="err-div">{ico}<span>{msg}</span></div>', unsafe_allow_html=True)
+
+def _section(label: str) -> None:
+    st.markdown(f'<div class="section-label">{label}</div>', unsafe_allow_html=True)
+
+def _divider() -> None:
+    st.markdown('<div style="border-top:1px solid #E0DDD5;margin:22px 0 18px;"></div>',
+                unsafe_allow_html=True)
 
 
 # ── 資料載入（cache） ─────────────────────────────────────────────────────────
 @st.cache_data
 def load_report():
-    # 優先讀檔案；檔案不存在時用內嵌 demo 資料
     for candidate in [_HERE / "cv_report_lgb.json", Path("cv_report_lgb.json")]:
         if candidate.exists():
             with open(candidate, encoding="utf-8") as f:
@@ -127,10 +420,8 @@ oof_df  = load_oof()
 fi_df   = load_feature_importance()
 feat_df = load_feature_cache()
 
-# report 永遠不會是 None（有內嵌 fallback）
-
-m = report["oof_metrics"]
-s = report["submission"]
+m     = report["oof_metrics"]
+s     = report["submission"]
 folds = report["folds"]
 
 
@@ -138,27 +429,67 @@ folds = report["folds"]
 # Sidebar
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("""
-    <div style="background:linear-gradient(135deg,#1e3a5f,#2d6a4f);
-                border-radius:10px;padding:14px 16px;text-align:center;margin-bottom:4px;">
-        <span style="font-size:22px;">🛡️</span>
-        <span style="color:white;font-size:18px;font-weight:bold;margin-left:8px;">BitoGuard AML</span>
-    </div>""", unsafe_allow_html=True)
-    st.markdown("---")
-    page = st.radio("頁面", [
-        "📊 總覽儀表板",
-        "🔍 用戶風險查詢",
-        "📈 模型評估",
-        "📋 提交結果",
-    ])
-    st.markdown("---")
-    st.markdown(f"**模型：** LightGBM")
-    st.markdown(f"**訓練日期：** 2026-03-26")
-    st.markdown(f"**OOF F1：** `{m['f1']*100:.1f}%`")
-    st.markdown(f"**AUC：** `{m['auc']*100:.1f}%`")
-    st.markdown(f"**準確度：** `{m.get('accuracy', 0.9564)*100:.1f}%`")
+    shield_svg = _icon("shield", 22, "#7A9B8A")
+    st.markdown(f"""
+    <div style="padding:18px 4px 14px;display:flex;align-items:center;gap:10px;">
+        <div style="background:#EBF2EE;border:1px solid #C8DDD4;border-radius:12px;
+                    padding:8px;display:flex;align-items:center;justify-content:center;">
+            {shield_svg}
+        </div>
+        <div>
+            <div style="font-size:16px;font-weight:800;color:#2C2720;letter-spacing:-0.3px;
+                        line-height:1.2;">BitoGuard</div>
+            <div style="font-size:10px;color:#A8A098;letter-spacing:1.5px;
+                        text-transform:uppercase;font-weight:600;">AML Platform</div>
+        </div>
+    </div>
+    <div style="border-top:1px solid #E0DDD5;margin:0 0 18px;"></div>
+    """, unsafe_allow_html=True)
 
-    if st.button("🔄 重新整理快取"):
+    page = st.radio("", [
+        "總覽儀表板",
+        "用戶風險查詢",
+        "模型評估",
+        "提交結果",
+    ], label_visibility="collapsed")
+
+    st.markdown('<div style="border-top:1px solid #E0DDD5;margin:18px 0 14px;"></div>',
+                unsafe_allow_html=True)
+
+    st.markdown(f"""
+    <div style="background:#EDE9E2;border:1px solid #E0DDD5;border-radius:4px;
+                padding:16px 16px 12px;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;
+                    color:#B0A898;margin-bottom:12px;">MODEL INFO</div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;
+                    border-bottom:1px solid #E0DDD5;">
+            <span style="font-size:12px;color:#8A8078;">演算法</span>
+            <span style="font-size:12px;color:#4A4238;font-weight:600;">LightGBM</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;
+                    border-bottom:1px solid #E0DDD5;">
+            <span style="font-size:12px;color:#8A8078;">OOF F1</span>
+            <span style="font-size:12px;color:#5A8A6A;font-weight:700;">{m['f1']*100:.1f}%</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;
+                    border-bottom:1px solid #E0DDD5;">
+            <span style="font-size:12px;color:#8A8078;">AUC</span>
+            <span style="font-size:12px;color:#5878A8;font-weight:700;">{m['auc']*100:.1f}%</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;
+                    border-bottom:1px solid #E0DDD5;">
+            <span style="font-size:12px;color:#8A8078;">準確度</span>
+            <span style="font-size:12px;color:#7A7870;font-weight:700;">{m.get('accuracy', 0.9564)*100:.1f}%</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;">
+            <span style="font-size:12px;color:#8A8078;">訓練日期</span>
+            <span style="font-size:12px;color:#B0A898;">2026-03-26</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown('<div style="margin-top:14px;"></div>', unsafe_allow_html=True)
+    if st.button("重新整理快取", use_container_width=True):
         st.cache_data.clear()
         st.rerun()
 
@@ -166,68 +497,71 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════════════════
 # 頁面 1：總覽儀表板
 # ══════════════════════════════════════════════════════════════════════════════
-if page == "📊 總覽儀表板":
-    st.title("🛡️ BitoGuard AML 反洗錢偵測系統")
-    st.caption("BitoPro Hackathon — Mule Account Detection Dashboard")
+if page == "總覽儀表板":
+    st.markdown('<div class="page-title">BitoGuard AML 反洗錢偵測系統</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">BitoPro Hackathon · Mule Account Detection · LightGBM 5-Fold CV</div>', unsafe_allow_html=True)
 
-    # ── 計算準確度 ────────────────────────────────────────────────────────────
+    # ── 計算數值 ──────────────────────────────────────────────────────────────
     _N_TOTAL, _N_POS = 51017, 1640
     _tp  = max(0, round(m["recall"] * _N_POS))
     _fp  = max(0, round(_tp / m["precision"] - _tp)) if m["precision"] > 0 else 0
     _tn  = (_N_TOTAL - _N_POS) - _fp
     _acc = m.get("accuracy", (_tp + _tn) / _N_TOTAL)
 
-    # ── KPI 指標卡片 ──────────────────────────────────────────────────────────
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    # ── KPI 列（不對稱：左側 4 格 KPI，右側英雄數字卡）────────────────────
+    col_kpi, col_hero = st.columns([5, 2])
 
-    def _pct_val(v):
-        """大數字 + 小 % 符號，確保同行不換行"""
-        return f'<span style="font-size:30px;font-weight:900;line-height:1">{v:.1f}</span><span style="font-size:18px;font-weight:700">%</span>'
+    def _kpi_html(label, val_str, sub, accent):
+        return f"""<div class="kpi-strip">
+            <div class="kpi-accent" style="background:{accent};"></div>
+            <div>
+                <div class="kpi-label">{label}</div>
+                <div class="kpi-value">{val_str}</div>
+                <div class="kpi-sub">{sub}</div>
+            </div>
+        </div>"""
 
-    with c1:
-        st.markdown(f"""<div class="metric-card">
-            <div class="metric-title">✅ 準確度 (Accuracy)</div>
-            <div class="metric-value" style="font-size:inherit">{_pct_val(_acc*100)}</div>
-            <div class="metric-sub">整體預測正確比例</div>
-        </div>""", unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""<div class="metric-card">
-            <div class="metric-title">🎯 AUC (排序能力)</div>
-            <div class="metric-value" style="font-size:inherit">{_pct_val(m['auc']*100)}</div>
-            <div class="metric-sub">ROC 曲線下面積</div>
-        </div>""", unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"""<div class="metric-card">
-            <div class="metric-title">⚖️ F1-Score (綜合)</div>
-            <div class="metric-value" style="font-size:inherit">{_pct_val(m['f1']*100)}</div>
-            <div class="metric-sub">P={m['precision']*100:.1f}% R={m['recall']*100:.1f}%</div>
-        </div>""", unsafe_allow_html=True)
-    with c4:
-        st.markdown(f"""<div class="metric-card">
-            <div class="metric-title">🎯 Precision (精確率)</div>
-            <div class="metric-value" style="font-size:inherit">{_pct_val(m['precision']*100)}</div>
-            <div class="metric-sub">預測黑名單中真正是的比例</div>
-        </div>""", unsafe_allow_html=True)
-    with c5:
-        st.markdown(f"""<div class="metric-card">
-            <div class="metric-title">🔍 Recall (召回率)</div>
-            <div class="metric-value" style="font-size:inherit">{_pct_val(m['recall']*100)}</div>
-            <div class="metric-sub">實際黑名單被抓到的比例</div>
-        </div>""", unsafe_allow_html=True)
-    with c6:
-        st.markdown(f"""<div class="metric-card">
-            <div class="metric-title">🚨 預測黑名單數</div>
-            <div class="metric-value">{s['blacklist']:,}</div>
-            <div class="metric-sub">共 {s['total']:,} 位用戶</div>
-        </div>""", unsafe_allow_html=True)
+    with col_kpi:
+        _section("CORE METRICS — OOF 5-FOLD CROSS VALIDATION")
+        r1c1, r1c2 = st.columns(2)
+        r2c1, r2c2 = st.columns(2)
+        with r1c1:
+            st.markdown(_kpi_html("AUC", f"{m['auc']*100:.1f}%", "ROC 曲線下面積", "#6A8EBA"),
+                        unsafe_allow_html=True)
+        with r1c2:
+            st.markdown(_kpi_html("F1-SCORE", f"{m['f1']*100:.1f}%", "P·R 調和平均", "#7A9B8A"),
+                        unsafe_allow_html=True)
+        with r2c1:
+            st.markdown(_kpi_html("PRECISION", f"{m['precision']*100:.1f}%", "預測黑名單中正確的比例", "#A8906A"),
+                        unsafe_allow_html=True)
+        with r2c2:
+            st.markdown(_kpi_html("RECALL", f"{m['recall']*100:.1f}%", "實際黑名單被召回的比例", "#B07878"),
+                        unsafe_allow_html=True)
 
-    st.markdown("---")
+    with col_hero:
+        _section("ACCURACY")
+        st.markdown(f"""
+        <div class="bg-card" style="text-align:center;padding:30px 16px 24px;">
+            <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+                        color:#B0A898;margin-bottom:10px;">整體準確度</div>
+            <div style="font-size:60px;font-weight:900;line-height:0.95;
+                        color:#2C2720;letter-spacing:-3px;">{_acc*100:.1f}<span style="font-size:24px;color:#C0B8AE;">%</span></div>
+            <div style="border-top:1px solid #E0DDD5;margin:18px 0 14px;"></div>
+            <div style="font-size:10px;letter-spacing:1.2px;text-transform:uppercase;
+                        color:#B0A898;margin-bottom:6px;">預測黑名單</div>
+            <div style="font-size:30px;font-weight:800;color:#B06858;
+                        letter-spacing:-1px;">{s['blacklist']:,}</div>
+            <div style="font-size:11px;color:#B0A898;margin-top:3px;">共 {s['total']:,} 位用戶</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # ── 混淆矩陣 ──────────────────────────────────────────────────────────────
-    col_left, col_right = st.columns([1, 1])
+    _divider()
 
-    with col_left:
-        st.subheader("混淆矩陣 (OOF 5-Fold)")
+    # ── 主圖區（不對稱：混淆矩陣 38% + 5-Fold 柱狀圖 62%）────────────────
+    col_cm, col_fold = st.columns([2, 3])
+
+    with col_cm:
+        _section("CONFUSION MATRIX — OOF 5-FOLD")
         N_POS = 1640
         tp = int(m["recall"] * N_POS)
         fp = int(tp / m["precision"] - tp) if m["precision"] > 0 else 0
@@ -240,160 +574,196 @@ if page == "📊 總覽儀表板":
             y=["實際：正常 (0)", "實際：黑名單 (1)"],
             text=[[f"TN\n{tn:,}", f"FP\n{fp:,}"], [f"FN\n{fn:,}", f"TP\n{tp:,}"]],
             texttemplate="%{text}",
-            textfont={"size": 18, "color": "white"},
-            colorscale=[[0, "#27ae60"], [0.33, "#f39c12"],
-                        [0.66, "#e74c3c"], [1, "#1a6b3a"]],
+            textfont={"size": 15, "color": "#3A3228"},
+            colorscale=[[0, "#D8EAE0"], [0.33, "#EAE0C8"],
+                        [0.66, "#EAD0CC"], [1, "#C8DED4"]],
             showscale=False,
         ))
-        cm_fig.update_layout(height=320, margin=dict(l=0, r=0, t=10, b=0))
+        cm_fig.update_layout(height=300, margin=dict(l=0, r=0, t=10, b=0), **_CL)
         st.plotly_chart(cm_fig, use_container_width=True)
 
-    with col_right:
-        st.subheader("5-Fold 交叉驗證結果")
+    with col_fold:
+        _section("5-FOLD CROSS VALIDATION RESULTS")
         fold_fig = go.Figure()
         xs = [f"Fold {f['fold']}" for f in folds]
-        fold_fig.add_trace(go.Bar(name="Precision", x=xs, y=[f["precision"] for f in folds],
-                                  marker_color="#4C72B0", opacity=0.85))
-        fold_fig.add_trace(go.Bar(name="Recall",    x=xs, y=[f["recall"]    for f in folds],
-                                  marker_color="#DD8452", opacity=0.85))
-        fold_fig.add_trace(go.Bar(name="F1-Score",  x=xs, y=[f["f1"]        for f in folds],
-                                  marker_color="#55A868", opacity=0.85))
-        fold_fig.add_hline(y=m["f1"], line_dash="dash", line_color="#55A868",
-                           annotation_text=f"OOF F1={m['f1']*100:.1f}%")
-        fold_fig.update_layout(barmode="group", height=320,
-                                margin=dict(l=0, r=0, t=10, b=0),
-                                yaxis_range=[0, 0.6])
+        fold_fig.add_trace(go.Bar(name="Precision", x=xs,
+                                  y=[f["precision"] for f in folds],
+                                  marker_color="#7A9AC8", opacity=0.82))
+        fold_fig.add_trace(go.Bar(name="Recall", x=xs,
+                                  y=[f["recall"] for f in folds],
+                                  marker_color="#C8A878", opacity=0.82))
+        fold_fig.add_trace(go.Bar(name="F1-Score", x=xs,
+                                  y=[f["f1"] for f in folds],
+                                  marker_color="#7A9B8A", opacity=0.82))
+        fold_fig.add_hline(y=m["f1"], line_dash="dash", line_color="#7A9B8A",
+                           annotation_text=f"OOF F1={m['f1']*100:.1f}%",
+                           annotation_font_color="#5A7A6A")
+        fold_fig.update_layout(barmode="group", height=300,
+                               margin=dict(l=0, r=0, t=10, b=0),
+                               yaxis_range=[0, 0.6],
+                               legend=dict(orientation="h", y=-0.28, font=dict(size=11)),
+                               **_CL)
         st.plotly_chart(fold_fig, use_container_width=True)
 
-    # ── 系統流程圖 ─────────────────────────────────────────────────────────────
-    st.subheader("系統四大模組")
-    col1, col2, col3, col4 = st.columns(4)
+    _divider()
+
+    # ── 系統四大模組（雜誌感，不等寬欄）────────────────────────────────────
+    _section("SYSTEM ARCHITECTURE — 四大核心模組")
     modules = [
-        ("①", "數據擷取\n& 自動化建倉", "#1e3a5f",
-         "- API 對接 + Checkpoint\n- Parquet → S3\n- Glue Crawler 自動建表"),
-        ("②", "圖運算\n特徵工程", "#2d6a4f",
-         "- BFS 資金跳轉跳數\n- Salting 超級節點\n- Feature Store 持久化"),
-        ("③", "模型訓練\n& MLOps", "#7b2d8b",
-         f"- LightGBM (AUC={m['auc']*100:.1f}%)\n- 5-Fold CV (F1={m['f1']*100:.1f}%)\n- HPO 超參數優化"),
-        ("④", "AI 風險診斷\n& 自動響應", "#9b2335",
-         "- PII Guard 三層保護\n- Claude 3.5 深度推理\n- 閉環回饋增量訓練"),
+        ("database",       "數據擷取 & 自動化建倉", "#EBF0F4", "#6A8EBA",
+         "BitoPro API · Checkpoint · Parquet → S3 · Glue Crawler 自動建表"),
+        ("git-branch",     "圖運算特徵工程",         "#EBF2EE", "#6A9A7A",
+         "BFS 資金跳轉 · Salting 超級節點 · Feature Store 持久化"),
+        ("cpu",            "模型訓練 & MLOps",        "#F0EBF4", "#9A88B8",
+         f"LightGBM AUC={m['auc']*100:.1f}% · 5-Fold CV · HPO 超參數優化"),
+        ("message-circle", "AI 風險診斷 & 自動響應",  "#F4EBEB", "#B87878",
+         "PII Guard 三層保護 · Claude 3.5 深度推理 · 閉環回饋增量訓練"),
     ]
-    for col, (num, title, color, detail) in zip([col1, col2, col3, col4], modules):
+    mcols = st.columns([3, 2.5, 2.5, 2])
+    for col, (ico_name, title, bg, accent, detail) in zip(mcols, modules):
         with col:
+            ico_html = _icon(ico_name, 20, accent)
             st.markdown(f"""
-            <div style="background:{color};border-radius:12px;padding:16px;
-                        color:white;min-height:200px;text-align:center;">
-                <div style="font-size:28px;font-weight:bold;">{num}</div>
-                <div style="font-size:15px;font-weight:bold;margin:8px 0;
-                            white-space:pre-line;">{title}</div>
-                <hr style="border-color:rgba(255,255,255,0.3)">
-                <div style="font-size:12px;text-align:left;white-space:pre-line;
-                            opacity:0.9;">{detail}</div>
+            <div style="background:{bg};border:1px solid #E0DDD5;
+                        border-top:3px solid {accent};border-radius:16px;
+                        padding:20px 18px;min-height:150px;">
+                <div style="background:white;border:1px solid {accent}30;border-radius:10px;
+                            width:36px;height:36px;display:flex;align-items:center;
+                            justify-content:center;margin-bottom:14px;">{ico_html}</div>
+                <div style="font-size:14px;font-weight:700;color:#3A3228;
+                            margin-bottom:8px;line-height:1.35;letter-spacing:-0.1px;">{title}</div>
+                <div style="font-size:11px;color:#8A8078;line-height:1.7;
+                            letter-spacing:0.1px;">{detail}</div>
             </div>""", unsafe_allow_html=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 頁面 2：用戶風險查詢
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "🔍 用戶風險查詢":
-    st.title("🔍 用戶風險查詢")
+elif page == "用戶風險查詢":
+    st.markdown('<div class="page-title">用戶風險查詢</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">依 User ID 查詢模型預測機率與風險等級</div>', unsafe_allow_html=True)
 
     if sub_df is None:
-        st.warning("submission_with_prob.csv 未載入，部分功能受限。")
+        _warn("submission_with_prob.csv 未載入，部分功能受限。")
 
-    # 搜尋框
-    col_search, col_btn = st.columns([3, 1])
+    col_search, col_btn = st.columns([4, 1])
     with col_search:
-        uid_input = st.text_input("輸入用戶 ID", placeholder="例如：967903",
+        uid_input = st.text_input("用戶 ID", placeholder="輸入 User ID，例如：967903",
                                    label_visibility="collapsed")
     with col_btn:
-        search_btn = st.button("🔍 查詢", use_container_width=True)
+        search_btn = st.button("搜尋", use_container_width=True)
 
-    st.markdown("---")
+    _divider()
 
     if uid_input and (search_btn or uid_input):
         try:
             uid = int(uid_input.strip())
             row = sub_df[sub_df["user_id"] == uid]
             if row.empty:
-                st.warning(f"找不到 user_id = {uid}")
+                _warn(f"找不到 user_id = {uid}，請確認 ID 是否正確。")
             else:
                 row = row.iloc[0]
                 prob = row.get("probability", 0.5) if "probability" in row.index else 0.5
                 status = int(row["status"])
                 thr = m["threshold"]
 
-                # 風險等級
                 if prob >= 0.5:
-                    risk_level, risk_color = "🔴 極高風險", "#c0392b"
+                    risk_level, risk_color, risk_bg = "CRITICAL · 極高風險", "#B06050", "#F8EDEB"
                 elif prob >= thr:
-                    risk_level, risk_color = "🟠 高風險（黑名單預測）", "#e67e22"
+                    risk_level, risk_color, risk_bg = "HIGH · 高風險（黑名單預測）", "#A88040", "#F5F0E4"
                 elif prob >= thr * 0.5:
-                    risk_level, risk_color = "🟡 中等風險", "#f39c12"
+                    risk_level, risk_color, risk_bg = "MEDIUM · 中等風險", "#908050", "#F4F2E4"
                 else:
-                    risk_level, risk_color = "🟢 低風險（正常）", "#27ae60"
+                    risk_level, risk_color, risk_bg = "LOW · 低風險（正常）", "#5A8A6A", "#EAF2EE"
 
-                # ── 大字機率顯示 ──────────────────────────────────────────────
-                st.markdown(f"""
-                <div style="border: 3px solid {risk_color}; border-radius: 14px;
-                            padding: 28px; background: #0e1117; text-align:center;">
-                    <div style="color:#aaa; font-size:15px; margin-bottom:6px;">
-                        用戶 ID <b style="color:white;">{uid}</b> 為黑名單的機率
-                    </div>
-                    <div style="font-size:80px; font-weight:900; line-height:1;
-                                color:{risk_color}; letter-spacing:-2px;">
-                        {prob*100:.1f}%
-                    </div>
-                    <div style="font-size:18px; color:{risk_color}; margin-top:10px;
-                                font-weight:bold;">
-                        {risk_level}
-                    </div>
-                    <hr style="border-color:rgba(255,255,255,0.15); margin:16px 0;">
-                    <table style="width:100%; font-size:15px; color:#ccc; text-align:left;">
-                        <tr>
-                            <td width="50%">精確機率</td>
-                            <td style="color:{risk_color}; font-weight:bold;">{prob*100:.4f}%</td>
-                        </tr>
-                        <tr>
-                            <td>最終判定</td>
-                            <td>{"<span style='background:#c0392b;color:white;padding:2px 10px;border-radius:12px;font-weight:bold;'>黑名單 ✗</span>" if status==1 else "<span style='background:#27ae60;color:white;padding:2px 10px;border-radius:12px;font-weight:bold;'>正常 ✓</span>"}</td>
-                        </tr>
-                        <tr>
-                            <td>決策門檻</td>
-                            <td style="color:#aaa;">{thr:.2f}（機率 > {thr:.2f} 判為黑名單）</td>
-                        </tr>
-                    </table>
-                </div>""", unsafe_allow_html=True)
+                # 不對稱：大機率（2份）+ 細節表格（3份）
+                col_prob, col_detail = st.columns([2, 3])
 
-                # 機率儀表板
+                with col_prob:
+                    st.markdown(f"""
+                    <div style="background:{risk_bg};border:1px solid {risk_color}35;
+                                border-left:4px solid {risk_color};border-radius:4px;
+                                padding:30px 22px;text-align:center;">
+                        <div style="font-size:10px;letter-spacing:2.5px;text-transform:uppercase;
+                                    color:#505068;margin-bottom:14px;">USER ID {uid}</div>
+                        <div style="font-size:68px;font-weight:900;line-height:0.9;
+                                    color:{risk_color};letter-spacing:-3px;">{prob*100:.1f}<span style="font-size:26px;">%</span></div>
+                        <div style="margin-top:16px;font-size:11px;font-weight:700;
+                                    letter-spacing:1.5px;color:{risk_color};
+                                    text-transform:uppercase;">{risk_level}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                with col_detail:
+                    verdict_html = (
+                        "<span style='background:#F0E0DC;color:#A05848;padding:3px 10px;"
+                        "border-radius:3px;font-size:12px;font-weight:700;'>黑名單 ✗</span>"
+                        if status == 1 else
+                        "<span style='background:#DCF0E4;color:#407850;padding:3px 10px;"
+                        "border-radius:3px;font-size:12px;font-weight:700;'>正常 ✓</span>"
+                    )
+                    diff = (prob - thr) * 100
+                    diff_color = "#B06050" if diff > 0 else "#5A8A6A"
+                    diff_str = f"+{diff:.1f}%" if diff > 0 else f"{diff:.1f}%"
+                    st.markdown(f"""
+                    <div class="bg-card" style="margin-top:0;">
+                        <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
+                                    color:#B0A898;margin-bottom:14px;">風險詳情</div>
+                        <table style="width:100%;border-collapse:collapse;">
+                            <tr style="border-bottom:1px solid #E0DDD5;">
+                                <td style="padding:9px 0;font-size:12px;color:#8A8078;">黑名單機率（精確）</td>
+                                <td style="padding:9px 0;font-size:13px;color:{risk_color};
+                                           font-weight:700;text-align:right;">{prob*100:.4f}%</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #E0DDD5;">
+                                <td style="padding:9px 0;font-size:12px;color:#8A8078;">最終判定</td>
+                                <td style="padding:9px 0;text-align:right;">{verdict_html}</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid #E0DDD5;">
+                                <td style="padding:9px 0;font-size:12px;color:#8A8078;">決策門檻</td>
+                                <td style="padding:9px 0;font-size:12px;color:#A8A098;
+                                           text-align:right;">{thr:.2f}</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:9px 0;font-size:12px;color:#8A8078;">與門檻差距</td>
+                                <td style="padding:9px 0;font-size:13px;font-weight:700;
+                                           color:{diff_color};text-align:right;">{diff_str}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                # 儀表板（全寬）
                 gauge = go.Figure(go.Indicator(
                     mode="gauge+number",
                     value=prob * 100,
-                    title={"text": "風險分數 (%)"},
-                    number={"suffix": "%", "font": {"size": 40}},
+                    title={"text": "風險分數 (%)", "font": {"color": "#8A8078", "size": 13}},
+                    number={"suffix": "%", "font": {"size": 34, "color": "#3A3228"}},
                     gauge={
-                        "axis": {"range": [0, 100]},
+                        "axis": {"range": [0, 100], "tickcolor": "#C0B8AE", "tickwidth": 1},
                         "bar":  {"color": risk_color},
+                        "bgcolor": "#F9F8F6",
+                        "borderwidth": 0,
                         "steps": [
-                            {"range": [0,  thr*50],   "color": "#d5f5e3"},
-                            {"range": [thr*50, thr*100], "color": "#fdebd0"},
-                            {"range": [thr*100, 50],  "color": "#fadbd8"},
-                            {"range": [50, 100],      "color": "#e74c3c", "thickness": 0.6},
+                            {"range": [0,        thr*50],  "color": "#E8F0EC"},
+                            {"range": [thr*50,   thr*100], "color": "#F0EDE0"},
+                            {"range": [thr*100,  50],      "color": "#F0E8E4"},
+                            {"range": [50,       100],     "color": "#ECD8D4"},
                         ],
-                        "threshold": {"line": {"color": "black", "width": 3},
+                        "threshold": {"line": {"color": "#B0A898", "width": 2},
                                       "value": thr * 100},
                     }
                 ))
-                gauge.update_layout(height=280, margin=dict(l=20, r=20, t=30, b=0))
+                gauge.update_layout(height=230, margin=dict(l=20, r=20, t=30, b=0), **_CL)
                 st.plotly_chart(gauge, use_container_width=True)
 
-                # ── 生成風險書 ────────────────────────────────────────────────
-                import datetime
+                # 風險評估書下載
                 risk_label_text = {
-                    "🔴 極高風險":          "CRITICAL",
-                    "🟠 高風險（黑名單預測）": "HIGH",
-                    "🟡 中等風險":          "MEDIUM",
-                    "🟢 低風險（正常）":     "LOW",
+                    "CRITICAL · 極高風險":       "CRITICAL",
+                    "HIGH · 高風險（黑名單預測）": "HIGH",
+                    "MEDIUM · 中等風險":          "MEDIUM",
+                    "LOW · 低風險（正常）":        "LOW",
                 }.get(risk_level, "UNKNOWN")
 
                 report_lines = [
@@ -445,43 +815,41 @@ elif page == "🔍 用戶風險查詢":
                     "本報告由 BitoGuard AML 系統自動生成，僅供內部參考。",
                     "=" * 52,
                 ]
-                report_text = "\n".join(report_lines)
-
                 st.download_button(
-                    label="📄 下載風險評估書 (.txt)",
-                    data=report_text.encode("utf-8"),
+                    label="下載風險評估書 (.txt)",
+                    data="\n".join(report_lines).encode("utf-8"),
                     file_name=f"risk_report_user_{uid}.txt",
                     mime="text/plain",
                     use_container_width=True,
                 )
-                st.markdown("---")
 
-                # 特徵資料（若有快取）
+                _divider()
+
+                # 特徵明細（若有快取）
                 if feat_df is not None and "user_id" in feat_df.columns:
                     user_feat = feat_df[feat_df["user_id"] == uid]
                     if not user_feat.empty:
-                        st.subheader("用戶特徵明細")
+                        _section("USER FEATURE DETAIL")
                         feat_cols = [c for c in report["features"] if c in user_feat.columns]
                         display_df = user_feat[feat_cols].T.reset_index()
                         display_df.columns = ["特徵名稱", "數值"]
                         st.dataframe(display_df, use_container_width=True, height=400)
 
         except ValueError:
-            st.error("請輸入有效的數字 user_id")
+            _err("請輸入有效的數字 user_id")
 
-    # 高風險 / 低風險 並排
-    st.markdown("---")
-    col_hi, col_lo = st.columns(2)
+    # ── 風險排行（不對稱 3:2）────────────────────────────────────────────────
+    _divider()
 
     if sub_df is not None and "probability" in sub_df.columns:
-        thr = m["threshold"]
+        col_hi, col_lo = st.columns([3, 2])
 
         with col_hi:
-            st.subheader("🚨 高風險用戶列表（前 50）")
+            _section("HIGH RISK — 高風險用戶排行（前 50）")
             top50 = sub_df.nlargest(50, "probability")[["user_id", "probability", "status"]].copy()
             top50["probability"] = (top50["probability"] * 100).round(1)
             top50["風險等級"] = top50["probability"].apply(
-                lambda p: "🔴 極高" if p >= 50 else "🟠 高")
+                lambda p: "CRITICAL" if p >= 50 else "HIGH")
             top50.columns = ["用戶 ID", "黑名單機率 (%)", "預測標籤", "風險等級"]
             st.dataframe(
                 top50.style.background_gradient(subset=["黑名單機率 (%)"], cmap="Reds"),
@@ -489,30 +857,31 @@ elif page == "🔍 用戶風險查詢":
             )
 
         with col_lo:
-            st.subheader("🟢 低風險用戶列表（後 50）")
+            _section("LOW RISK — 低風險用戶（後 50）")
             bot50 = sub_df.nsmallest(50, "probability")[["user_id", "probability", "status"]].copy()
             bot50["probability"] = (bot50["probability"] * 100).round(1)
-            bot50["風險等級"] = "🟢 低風險"
+            bot50["風險等級"] = "LOW"
             bot50.columns = ["用戶 ID", "黑名單機率 (%)", "預測標籤", "風險等級"]
             st.dataframe(
                 bot50.style.background_gradient(subset=["黑名單機率 (%)"], cmap="Greens_r"),
                 use_container_width=True, height=400,
             )
     else:
-        st.info("需要 submission_with_prob.csv 才能顯示用戶列表")
+        _info("需要 submission_with_prob.csv 才能顯示用戶風險排行列表。")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 頁面 3：模型評估
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "📈 模型評估":
-    st.title("📈 模型評估詳情")
+elif page == "模型評估":
+    st.markdown('<div class="page-title">模型評估詳情</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">LightGBM · Feature Importance · Threshold Analysis · Probability Distribution</div>', unsafe_allow_html=True)
 
-    col_l, col_r = st.columns(2)
+    # 不對稱：特徵重要度（3份）+ 右側欄位（4份）
+    col_l, col_r = st.columns([3, 4])
 
-    # ── 特徵重要度 ────────────────────────────────────────────────────────────
     with col_l:
-        st.subheader("特徵重要度 (LightGBM Gain)")
+        _section("FEATURE IMPORTANCE — LightGBM Gain")
         if fi_df is not None:
             df = fi_df.head(20)
         else:
@@ -531,16 +900,16 @@ elif page == "📈 模型評估":
             df = df.sort_values("importance", ascending=False)
 
         fi_fig = px.bar(df, x="importance", y="feature", orientation="h",
-                        color="importance", color_continuous_scale="RdYlGn_r",
+                        color="importance", color_continuous_scale="Teal",
                         labels={"importance": "Gain", "feature": ""})
-        fi_fig.update_layout(height=550, coloraxis_showscale=False,
-                             margin=dict(l=0, r=0, t=0, b=0))
-        fi_fig.update_yaxes(autorange="reversed")
+        fi_fig.update_layout(height=560, coloraxis_showscale=False,
+                             margin=dict(l=0, r=0, t=0, b=0), **_CL)
+        fi_fig.update_yaxes(autorange="reversed", tickfont=dict(size=11, color="#8A8078"))
+        fi_fig.update_xaxes(tickfont=dict(size=11, color="#8A8078"))
         st.plotly_chart(fi_fig, use_container_width=True)
 
-    # ── 門檻分析 ──────────────────────────────────────────────────────────────
     with col_r:
-        st.subheader("門檻值分析")
+        _section("THRESHOLD ANALYSIS")
         if oof_df is not None:
             from sklearn.metrics import f1_score, precision_score, recall_score
             y_t = oof_df["true_label"].values
@@ -556,105 +925,135 @@ elif page == "📈 模型評估":
             fs = 2 * ps * rs / np.clip(ps + rs, 1e-9, 2)
 
         thr_fig = go.Figure()
-        thr_fig.add_trace(go.Scatter(x=ts, y=fs, name="F1-Score",    line=dict(color="#27ae60", width=2.5)))
-        thr_fig.add_trace(go.Scatter(x=ts, y=ps, name="Precision",   line=dict(color="#2980b9", width=2)))
-        thr_fig.add_trace(go.Scatter(x=ts, y=rs, name="Recall",      line=dict(color="#e74c3c", width=2)))
-        thr_fig.add_vline(x=m["threshold"], line_dash="dash", line_color="gold", line_width=2,
-                          annotation_text=f"最佳門檻={m['threshold']:.2f}")
-        thr_fig.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=0),
+        thr_fig.add_trace(go.Scatter(x=ts, y=fs, name="F1-Score",
+                                     line=dict(color="#7A9B8A", width=2.5)))
+        thr_fig.add_trace(go.Scatter(x=ts, y=ps, name="Precision",
+                                     line=dict(color="#6A8EBA", width=2)))
+        thr_fig.add_trace(go.Scatter(x=ts, y=rs, name="Recall",
+                                     line=dict(color="#B07878", width=2)))
+        thr_fig.add_vline(x=m["threshold"], line_dash="dash", line_color="#B0A898",
+                          line_width=1.5,
+                          annotation_text=f"最佳門檻={m['threshold']:.2f}",
+                          annotation_font_color="#8A8078")
+        thr_fig.update_layout(height=260, margin=dict(l=0, r=0, t=10, b=0),
                               xaxis_title="門檻值", yaxis_range=[0, 1],
-                              legend=dict(orientation="h", y=-0.2))
+                              legend=dict(orientation="h", y=-0.3, font=dict(size=11)),
+                              **_CL)
         st.plotly_chart(thr_fig, use_container_width=True)
 
-        # Fold 詳細數據表
-        st.subheader("各 Fold 詳細指標")
+        _section("FOLD METRICS TABLE")
         fold_table = pd.DataFrame(folds)
         fold_table.columns = ["Fold", "門檻", "Precision", "Recall", "F1", "AUC", "正類數"]
         for col in ["Precision", "Recall", "F1", "AUC"]:
             fold_table[col] = (fold_table[col] * 100).round(2)
         st.dataframe(
-            fold_table.style.highlight_max(subset=["F1", "AUC"], color="#d5f5e3")
-                            .highlight_min(subset=["F1", "AUC"], color="#fadbd8")
-                            .format({"Precision": "{:.1f}%", "Recall": "{:.1f}%",
-                                     "F1": "{:.1f}%", "AUC": "{:.1f}%"}),
-            use_container_width=True
+            fold_table.style
+                .highlight_max(subset=["F1", "AUC"], color="#D4EAE0")
+                .highlight_min(subset=["F1", "AUC"], color="#EAD8D4")
+                .format({"Precision": "{:.1f}%", "Recall": "{:.1f}%",
+                         "F1": "{:.1f}%", "AUC": "{:.1f}%"}),
+            use_container_width=True,
         )
 
-    # ── 風險分布直方圖 ─────────────────────────────────────────────────────────
-    st.subheader("預測機率分布")
+    # 全寬機率分布
+    _divider()
+    _section("PREDICTION PROBABILITY DISTRIBUTION")
     if sub_df is not None and "probability" in sub_df.columns:
         dist_fig = px.histogram(
             sub_df, x="probability", color="status",
-            nbins=80, barmode="overlay", opacity=0.75,
-            color_discrete_map={0: "#4C72B0", 1: "#C44E52"},
+            nbins=80, barmode="overlay", opacity=0.70,
+            color_discrete_map={0: "#7A9AC8", 1: "#C09078"},
             labels={"probability": "預測機率（黑名單）", "status": "標籤"},
         )
-        dist_fig.add_vline(x=m["threshold"], line_dash="dash", line_color="gold",
-                           annotation_text=f"門檻 {m['threshold']:.2f}", line_width=2)
-        dist_fig.update_layout(height=300, margin=dict(l=0, r=0, t=10, b=0))
+        dist_fig.add_vline(x=m["threshold"], line_dash="dash", line_color="#B0A898",
+                           line_width=1.5,
+                           annotation_text=f"門檻 {m['threshold']:.2f}",
+                           annotation_font_color="#8A8078")
+        dist_fig.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=0), **_CL)
         st.plotly_chart(dist_fig, use_container_width=True)
+    else:
+        _info("需要 submission_with_prob.csv 才能顯示機率分布圖。")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 頁面 4：提交結果
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "📋 提交結果":
-    st.title("📋 提交結果")
+elif page == "提交結果":
+    st.markdown('<div class="page-title">提交結果</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">submission.csv · 競賽最終提交預覽</div>', unsafe_allow_html=True)
 
-    # 統計資訊：優先用檔案，若無則用 report 內嵌數字
     if sub_df is None:
-        n_total  = s["total"]
-        n_black  = s["blacklist"]
-        n_norm   = s["normal"]
+        n_total = s["total"]
+        n_black = s["blacklist"]
+        n_norm  = s["normal"]
     else:
         n_total = len(sub_df)
-    n_black = int(sub_df["status"].sum())
-    n_norm  = n_total - n_black
+        n_black = int(sub_df["status"].sum())
+        n_norm  = n_total - n_black
 
-    col1, col2, col3 = st.columns(3)
-    col1.metric("總用戶數",  f"{n_total:,}")
-    col2.metric("預測黑名單", f"{n_black:,}",  delta=f"{n_black/n_total*100:.1f}%")
-    col3.metric("預測正常",  f"{n_norm:,}")
+    # 自訂統計卡片（取代 st.metric）
+    sc1, sc2, sc3 = st.columns(3)
 
-    st.markdown("---")
+    def _stat_card(col, label, value, sub_value, accent):
+        col.markdown(f"""
+        <div class="bg-card">
+            <div class="kpi-label">{label}</div>
+            <div class="kpi-value" style="color:{accent};">{value}</div>
+            <div class="kpi-sub">{sub_value}</div>
+        </div>""", unsafe_allow_html=True)
 
-    # 圓餅圖
-    pie_fig = px.pie(
-        values=[n_black, n_norm],
-        names=["黑名單 (status=1)", "正常 (status=0)"],
-        color_discrete_sequence=["#e74c3c", "#27ae60"],
-        hole=0.45,
-        title="預測結果分布"
-    )
-    pie_fig.update_layout(height=320, margin=dict(l=0, r=0, t=40, b=0))
-    st.plotly_chart(pie_fig, use_container_width=True)
+    _stat_card(sc1, "TOTAL USERS",  f"{n_total:,}", "預測目標用戶總數",          "#7A7870")
+    _stat_card(sc2, "BLACKLIST",    f"{n_black:,}", f"佔比 {n_black/n_total*100:.2f}%", "#B06858")
+    _stat_card(sc3, "NORMAL",       f"{n_norm:,}",  f"佔比 {n_norm/n_total*100:.2f}%",  "#5A8A6A")
 
-    # 資料預覽
-    st.subheader("submission.csv 預覽")
-    col_f, col_s = st.columns([2, 1])
-    with col_f:
-        filter_opt = st.selectbox("篩選", ["全部", "只看黑名單", "只看正常"])
-    with col_s:
-        show_prob = st.checkbox("顯示機率欄位", value=True)
+    _divider()
 
-    display_cols = ["user_id", "status"]
-    if show_prob and "probability" in sub_df.columns:
-        display_cols.append("probability")
+    # 不對稱：圓餅圖（2份）+ 資料預覽（5份）
+    col_pie, col_table = st.columns([2, 5])
 
-    df_show = sub_df[display_cols].copy()
-    if filter_opt == "只看黑名單":
-        df_show = df_show[df_show["status"] == 1]
-    elif filter_opt == "只看正常":
-        df_show = df_show[df_show["status"] == 0]
+    with col_pie:
+        _section("DISTRIBUTION")
+        pie_fig = px.pie(
+            values=[n_black, n_norm],
+            names=["黑名單", "正常"],
+            color_discrete_sequence=["#C09080", "#8AB8A0"],
+            hole=0.55,
+        )
+        pie_fig.update_traces(textinfo="percent+label", textfont_size=12,
+                              textfont_color=["#6A3828", "#2A5040"])
+        pie_fig.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=0),
+                              showlegend=False, **_CL)
+        st.plotly_chart(pie_fig, use_container_width=True)
 
-    st.dataframe(df_show, use_container_width=True, height=400)
+    with col_table:
+        _section("DATA PREVIEW — submission.csv")
+        ctrl1, ctrl2 = st.columns([3, 2])
+        with ctrl1:
+            filter_opt = st.selectbox("篩選", ["全部", "只看黑名單", "只看正常"],
+                                      label_visibility="collapsed")
+        with ctrl2:
+            show_prob = st.checkbox("顯示機率欄", value=True)
 
-    # 下載按鈕
-    sub_csv = sub_df[["user_id", "status"]].to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label="⬇️ 下載 submission.csv（競賽用）",
-        data=sub_csv,
-        file_name="submission.csv",
-        mime="text/csv",
-        use_container_width=True,
-    )
+        if sub_df is not None:
+            display_cols = ["user_id", "status"]
+            if show_prob and "probability" in sub_df.columns:
+                display_cols.append("probability")
+
+            df_show = sub_df[display_cols].copy()
+            if filter_opt == "只看黑名單":
+                df_show = df_show[df_show["status"] == 1]
+            elif filter_opt == "只看正常":
+                df_show = df_show[df_show["status"] == 0]
+
+            st.dataframe(df_show, use_container_width=True, height=360)
+
+            sub_csv = sub_df[["user_id", "status"]].to_csv(index=False).encode("utf-8")
+            st.download_button(
+                label="下載 submission.csv（競賽用）",
+                data=sub_csv,
+                file_name="submission.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        else:
+            _info("submission_with_prob.csv 未載入，無法顯示資料預覽。")
