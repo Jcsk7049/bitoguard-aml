@@ -74,10 +74,19 @@ html, body, [class*="css"], * {
     background-color: #F9F8F6 !important;
 }
 
+/* ── 主內容容器：限寬 + 左右留白，避免撐滿螢幕 ─────────────────────── */
+.block-container {
+    padding: 2.5rem 4rem 4rem !important;
+    max-width: 1200px !important;
+}
+
 /* ── Sidebar ────────────────────────────────────────────────────────── */
 [data-testid="stSidebar"] {
-    background-color: #F2F0EB !important;
-    border-right: 1px solid #E0DDD5 !important;
+    background-color: #EDE8DF !important;
+    border-right: 1px solid #DDD8CE !important;
+}
+[data-testid="stSidebar"] > div:first-child {
+    padding: 2rem 1.6rem 1.5rem !important;
 }
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
@@ -209,18 +218,18 @@ hr {
     background: #F3F1EC;
     border: 1px solid #E0DDD5;
     border-radius: 16px;
-    padding: 22px 24px;
-    margin-bottom: 10px;
+    padding: 24px 28px;
+    margin-bottom: 14px;
 }
 .kpi-strip {
     background: #F3F1EC;
     border: 1px solid #E0DDD5;
     border-radius: 16px;
-    padding: 16px 20px;
+    padding: 18px 22px;
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 .kpi-accent { width: 3px; height: 42px; border-radius: 3px; flex-shrink: 0; }
 .kpi-label  { font-size: 10px; color: #A8A098; text-transform: uppercase;
@@ -257,15 +266,18 @@ hr {
     color: #2C2720;
     letter-spacing: -0.8px;
     line-height: 1.15;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 .page-subtitle {
     font-size: 11px;
     color: #B0A898;
     text-transform: uppercase;
     letter-spacing: 1.8px;
-    margin-bottom: 28px;
+    margin-bottom: 36px;
     font-weight: 500;
+}
+.section-gap {
+    margin-top: 32px;
 }
 
 /* ── 自訂提示框（取代 st.info / st.warning / st.error）──────────────── */
@@ -374,7 +386,7 @@ def _section(label: str) -> None:
     st.markdown(f'<div class="section-label">{label}</div>', unsafe_allow_html=True)
 
 def _divider() -> None:
-    st.markdown('<div style="border-top:1px solid #E0DDD5;margin:22px 0 18px;"></div>',
+    st.markdown('<div style="border-top:1px solid #E0DDD5;margin:36px 0 28px;"></div>',
                 unsafe_allow_html=True)
 
 
@@ -457,8 +469,8 @@ with st.sidebar:
                 unsafe_allow_html=True)
 
     st.markdown(f"""
-    <div style="background:#EDE9E2;border:1px solid #E0DDD5;border-radius:4px;
-                padding:16px 16px 12px;">
+    <div style="background:#E6E0D6;border:1px solid #DDD8CE;border-radius:14px;
+                padding:18px 18px 14px;margin-top:8px;">
         <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;
                     color:#B0A898;margin-bottom:12px;">MODEL INFO</div>
         <div style="display:flex;justify-content:space-between;padding:5px 0;
@@ -489,7 +501,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     st.markdown('<div style="margin-top:14px;"></div>', unsafe_allow_html=True)
-    if st.button("重新整理快取", use_container_width=True):
+    if st.button("重新整理快取"):
         st.cache_data.clear()
         st.rerun()
 
@@ -652,7 +664,7 @@ elif page == "用戶風險查詢":
         uid_input = st.text_input("用戶 ID", placeholder="輸入 User ID，例如：967903",
                                    label_visibility="collapsed")
     with col_btn:
-        search_btn = st.button("搜尋", use_container_width=True)
+        search_btn = st.button("搜尋")
 
     _divider()
 
@@ -820,7 +832,6 @@ elif page == "用戶風險查詢":
                     data="\n".join(report_lines).encode("utf-8"),
                     file_name=f"risk_report_user_{uid}.txt",
                     mime="text/plain",
-                    use_container_width=True,
                 )
 
                 _divider()
@@ -1053,7 +1064,6 @@ elif page == "提交結果":
                 data=sub_csv,
                 file_name="submission.csv",
                 mime="text/csv",
-                use_container_width=True,
             )
         else:
             _info("submission_with_prob.csv 未載入，無法顯示資料預覽。")
