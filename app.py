@@ -125,19 +125,20 @@ html, body, [class*="css"], * {
     opacity: 1 !important;
 }
 
-/* 收納狀態容器：固定左上角，白底實體卡片外觀 */
+/* 收納狀態容器：貼齊左側，白底實體懸浮按鈕 */
 [data-testid="collapsedControl"] {
-    z-index: 999999 !important;
+    z-index: 99999999 !important;
     pointer-events: auto !important;
     position: fixed !important;
-    top: 0.75rem !important;
-    left: 0.75rem !important;
+    top: 15px !important;
+    left: 0px !important;
     font-size: 0 !important;
-    background-color: #F5F2EE !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
-    width: 40px !important;
-    height: 40px !important;
+    background-color: #FFFFFF !important;
+    border: 1.5px solid #8E735B !important;
+    border-radius: 0 8px 8px 0 !important;
+    box-shadow: 4px 0 10px rgba(0,0,0,0.1) !important;
+    width: 42px !important;
+    height: 42px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -208,21 +209,32 @@ html, body, [class*="css"], * {
 }
 [data-testid="collapsedControl"] button::before {
     content: '〉' !important;
-    font-size: 22px !important;
+    font-size: 24px !important;
     color: #8E735B !important;
+    font-weight: bold !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     visibility: visible !important;
     opacity: 1 !important;
-    display: block !important;
-    font-weight: bold !important;
     line-height: 1 !important;
     font-family: sans-serif !important;
-    z-index: 999999 !important;
+    z-index: 99999999 !important;
     position: relative !important;
 }
 [data-testid="stSidebarCollapseButton"] button::after,
 [data-testid="collapsedControl"] button::after {
     content: none !important;
     display: none !important;
+}
+
+/* ── 移除 stHeader 遮擋（防止透明 Header 攔截 collapsedControl 點擊）── */
+[data-testid="stHeader"] {
+    background: none !important;
+    pointer-events: none !important;
+}
+[data-testid="collapsedControl"] {
+    pointer-events: auto !important;
 }
 
 [data-testid="stSidebar"] > div:first-child {
@@ -691,12 +703,14 @@ components.html("""
             /* 收納按鈕容器 */
             '[data-testid="stSidebarCollapseButton"]{font-size:0!important;z-index:999999!important;}' +
             /* 展開按鈕容器（fixed 左上） */
-            '[data-testid="collapsedControl"]{font-size:0!important;z-index:999999!important;' +
-            'position:fixed!important;top:.75rem!important;left:.75rem!important;' +
-            'background-color:#F5F2EE!important;border-radius:8px!important;' +
-            'box-shadow:0 2px 8px rgba(0,0,0,.15)!important;' +
-            'width:40px!important;height:40px!important;' +
-            'display:flex!important;align-items:center!important;justify-content:center!important;}' +
+            '[data-testid="collapsedControl"]{font-size:0!important;z-index:99999999!important;' +
+            'position:fixed!important;top:15px!important;left:0px!important;pointer-events:auto!important;' +
+            'background-color:#FFFFFF!important;border:1.5px solid #8E735B!important;' +
+            'border-radius:0 8px 8px 0!important;box-shadow:4px 0 10px rgba(0,0,0,.1)!important;' +
+            'width:42px!important;height:42px!important;' +
+            'display:flex!important;align-items:center!important;justify-content:center!important;' +
+            'visibility:visible!important;opacity:1!important;}' +
+            '[data-testid="stHeader"]{background:none!important;pointer-events:none!important;}' +
             /* 清除原生 span / svg */
             '[data-testid="stSidebarCollapseButton"] span,[data-testid="stSidebarCollapseButton"] svg,' +
             '[data-testid="collapsedControl"] span,[data-testid="collapsedControl"] svg{' +
@@ -718,9 +732,10 @@ components.html("""
             'color:#8E735B!important;visibility:visible!important;display:block!important;' +
             'font-family:sans-serif!important;}' +
             '[data-testid="collapsedControl"] button::before{' +
-            'content:"\\3009"!important;font-size:22px!important;font-weight:bold!important;' +
-            'color:#8E735B!important;visibility:visible!important;display:block!important;' +
-            'font-family:sans-serif!important;}' +
+            'content:"\\3009"!important;font-size:24px!important;font-weight:bold!important;' +
+            'color:#8E735B!important;visibility:visible!important;opacity:1!important;' +
+            'display:flex!important;align-items:center!important;justify-content:center!important;' +
+            'font-family:sans-serif!important;z-index:99999999!important;position:relative!important;}' +
             /* button ::after 清空 */
             '[data-testid="stSidebarCollapseButton"] button::after,' +
             '[data-testid="collapsedControl"] button::after{content:none!important;display:none!important;}';
