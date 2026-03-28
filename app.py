@@ -20,6 +20,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 warnings.filterwarnings("ignore")
 
@@ -113,18 +114,20 @@ html, body, [class*="css"], * {
 
 /* ── 側邊欄收合 / 展開 按鈕 ─────────────────────────────────────────── */
 
-/* 確保按鈕容器可點、z-index 最高 */
+/* 確保按鈕容器可點、z-index 最高；font-size:0 讓文字節點不佔空間 */
 [data-testid="stSidebarCollapseButton"],
 [data-testid="collapsedControl"] {
     z-index: 99999 !important;
     pointer-events: auto !important;
     position: relative !important;
+    font-size: 0 !important;
 }
 
-/* 按鈕本體：all:unset 清除全域污染 */
+/* 按鈕本體：all:unset 清除全域污染；font-size:0 確保文字節點不可見 */
 [data-testid="stSidebarCollapseButton"] button,
 [data-testid="collapsedControl"] button {
     all: unset !important;
+    font-size: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -561,32 +564,79 @@ hr {
 }
 </style>
 
+""", unsafe_allow_html=True)
+
+# ── 注入 MutationObserver：物理移除 double_arrow 殘留文字 ──────────────────────
+# components.html 在獨立 iframe 執行，透過 window.parent.document 操作主頁面 DOM
+components.html("""
 <script>
-(function() {
-    function fixCollapsedBtn() {
-        // 找到所有含 "arrow" 或 "keyboard" 文字的節點並隱藏
-        var btns = document.querySelectorAll(
-            '[data-testid="collapsedControl"] button, [data-testid="stSidebarCollapseButton"] button'
-        );
-        btns.forEach(function(btn) {
-            btn.childNodes.forEach(function(node) {
-                if (node.nodeType === 3) {
-                    // 純文字節點直接清空
-                    node.textContent = '';
-                } else if (node.nodeName === 'SPAN' && !node.querySelector('svg')) {
-                    node.style.display = 'none';
+(function () {
+    var doc = window.parent.document;
+
+    function purgeDoubleArrow(root) {
+        if (!root) return;
+
+        // 1. 物理清除所有包含 double_arrow 的純文字節點
+        var walker = doc.createTreeWalker(
+            root,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode: function (node) {
+                    return (node.nodeValue && node.nodeValue.indexOf('double_arrow') !== -1)
+                        ? NodeFilter.FILTER_ACCEPT
+                        : NodeFilter.FILTER_SKIP;
                 }
-            });
+            },
+            false
+        );
+        var toBlank = [];
+        var n;
+        while ((n = walker.nextNode())) { toBlank.push(n); }
+        toBlank.forEach(function (node) { node.nodeValue = ''; });
+
+        // 2. 隱藏包含 double_arrow 文字的 span 元素（Material Icon fallback）
+        var spans = root.querySelectorAll ? root.querySelectorAll('span') : [];
+        Array.prototype.forEach.call(spans, function (sp) {
+            if (sp.textContent.indexOf('double_arrow') !== -1) {
+                sp.style.cssText += ';font-size:0!important;visibility:hidden!important;';
+                sp.textContent = '';
+            }
         });
     }
-    // 頁面載入後執行
-    document.addEventListener('DOMContentLoaded', fixCollapsedBtn);
-    // Streamlit 動態更新時也執行
-    var obs = new MutationObserver(fixCollapsedBtn);
-    obs.observe(document.body, { childList: true, subtree: true });
+
+    function init() {
+        purgeDoubleArrow(doc.body);
+
+        var observer = new MutationObserver(function (mutations) {
+            var needsScan = false;
+            mutations.forEach(function (m) {
+                // 有新 DOM 節點加入時標記掃描
+                if (m.addedNodes.length > 0) needsScan = true;
+                // 文字節點內容改變時直接清除
+                if (m.type === 'characterData' &&
+                    m.target.nodeValue &&
+                    m.target.nodeValue.indexOf('double_arrow') !== -1) {
+                    m.target.nodeValue = '';
+                }
+            });
+            if (needsScan) purgeDoubleArrow(doc.body);
+        });
+
+        observer.observe(doc.body, {
+            childList: true,
+            subtree: true,
+            characterData: true
+        });
+    }
+
+    if (doc.readyState === 'loading') {
+        doc.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 })();
 </script>
-""", unsafe_allow_html=True)
+""", height=0)
 
 # ── Lucide Light 圖示（stroke-width 1.5，內聯 SVG）──────────────────────────
 _ICONS: dict[str, str] = {
