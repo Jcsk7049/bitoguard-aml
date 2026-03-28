@@ -94,31 +94,32 @@ html, body, [class*="css"], * {
     color: #6A6058 !important;
 }
 
-/* ── 按鈕（圓角 12px + box-shadow）──────────────────────────────────── */
+/* ── 按鈕（琥珀深金主色 + 立體投影）────────────────────────────────── */
 .stButton > button,
 .stDownloadButton > button {
     border-radius: 12px !important;
-    box-shadow: 0 2px 8px rgba(60, 50, 40, 0.10) !important;
-    background: #EDE9E2 !important;
-    color: #3C3228 !important;
-    border: 1px solid #C8C0B0 !important;
+    background: #8E735B !important;
+    color: #FEFCF8 !important;
+    border: 1px solid #7A6148 !important;
     font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'Inter', sans-serif !important;
     font-size: 13px !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
     letter-spacing: 0.5px !important;
-    transition: background 0.2s, box-shadow 0.2s, border-color 0.2s !important;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06) !important;
+    transition: background 0.18s, box-shadow 0.18s, transform 0.12s !important;
     padding: 0.45rem 1.2rem !important;
 }
 .stButton > button:hover,
 .stDownloadButton > button:hover {
-    background: #E4DED4 !important;
-    box-shadow: 0 4px 14px rgba(60, 50, 40, 0.16) !important;
-    border-color: #7A9B8A !important;
-    color: #2A2018 !important;
+    background: #7A6148 !important;
+    box-shadow: 0 6px 12px -2px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08) !important;
+    border-color: #6A5238 !important;
+    color: #FFFFFF !important;
 }
 .stButton > button:active,
 .stDownloadButton > button:active {
-    box-shadow: 0 1px 4px rgba(60, 50, 40, 0.08) !important;
+    background: #6A5238 !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
     transform: translateY(1px) !important;
 }
 
