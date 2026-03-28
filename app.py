@@ -88,40 +88,17 @@ html, body, [class*="css"], * {
 
 /* ── 側邊欄收合 / 展開 按鈕 ─────────────────────────────────────────── */
 
-/* sidebar 展開時的收合按鈕 */
-[data-testid="stSidebarCollapseButton"] button {
-    all: unset !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 8px !important;
-    cursor: pointer !important;
-    transition: background 0.2s !important;
-}
-[data-testid="stSidebarCollapseButton"] button:hover {
-    background: rgba(93,90,84,0.10) !important;
-}
-[data-testid="stSidebarCollapseButton"] button svg {
-    stroke: #5D5A54 !important;
-    width: 18px !important;
-    height: 18px !important;
-    display: block !important;
-}
-[data-testid="stSidebarCollapseButton"] button span {
-    display: none !important;
+/* 確保按鈕可點、z-index 最高 */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="collapsedControl"] {
+    z-index: 99999 !important;
+    pointer-events: auto !important;
+    position: relative !important;
 }
 
-/* sidebar 收合後：把整個 collapsedControl 隱藏，防止文字洩出 */
-[data-testid="collapsedControl"] {
-    visibility: hidden !important;
-    pointer-events: none !important;
-}
-/* 但保留按鈕可點 */
+/* 按鈕本體：all:unset 清除全域污染 */
+[data-testid="stSidebarCollapseButton"] button,
 [data-testid="collapsedControl"] button {
-    visibility: visible !important;
-    pointer-events: auto !important;
     all: unset !important;
     display: flex !important;
     align-items: center !important;
@@ -130,19 +107,31 @@ html, body, [class*="css"], * {
     height: 32px !important;
     border-radius: 8px !important;
     cursor: pointer !important;
-    margin: 0.6rem 0.3rem !important;
+    pointer-events: auto !important;
+    z-index: 99999 !important;
+    position: relative !important;
+    transition: background 0.2s !important;
 }
+[data-testid="stSidebarCollapseButton"] button:hover,
 [data-testid="collapsedControl"] button:hover {
     background: rgba(93,90,84,0.10) !important;
 }
+/* SVG 箭頭正常顯示 */
+[data-testid="stSidebarCollapseButton"] button svg,
 [data-testid="collapsedControl"] button svg {
-    visibility: visible !important;
-    stroke: #5D5A54 !important;
+    display: block !important;
     width: 18px !important;
     height: 18px !important;
-    display: block !important;
+    stroke: #5D5A54 !important;
+    fill: none !important;
+    pointer-events: none !important;
 }
-[data-testid="collapsedControl"] button span {
+/* 移除任何 content 屬性殘留 */
+[data-testid="stSidebarCollapseButton"] button::before,
+[data-testid="stSidebarCollapseButton"] button::after,
+[data-testid="collapsedControl"] button::before,
+[data-testid="collapsedControl"] button::after {
+    content: none !important;
     display: none !important;
 }
 [data-testid="stSidebar"] > div:first-child {
@@ -154,45 +143,45 @@ html, body, [class*="css"], * {
     color: #6A6058 !important;
 }
 
-/* ── 全域按鈕（Ghost 風格，比照側邊欄導航）─────────────────────────── */
+/* ── 全域按鈕（白底棕框，白色帶質感）────────────────────────────────── */
 .stButton > button,
 .stDownloadButton > button {
     border-radius: 10px !important;
-    background: transparent !important;
-    color: #3A3228 !important;
-    border: 1px solid #C4BAB0 !important;
+    background: #FFFFFF !important;
+    color: #8E735B !important;
+    border: 1.5px solid #8E735B !important;
     font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'Inter', sans-serif !important;
     font-size: 13.5px !important;
     font-weight: 600 !important;
     letter-spacing: 0.3px !important;
     box-shadow: none !important;
-    transition: background 0.2s, border-color 0.2s, color 0.2s !important;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s !important;
     padding: 0.55rem 1.4rem !important;
     min-height: 42px !important;
     line-height: 1.4 !important;
 }
 .stButton > button *,
 .stDownloadButton > button * {
-    color: #3A3228 !important;
+    color: #8E735B !important;
 }
 .stButton > button:hover,
 .stDownloadButton > button:hover {
-    background: rgba(142,115,91,0.10) !important;
-    border-color: #8E735B !important;
-    color: #2C2010 !important;
-    box-shadow: none !important;
+    background: #F5F2EE !important;
+    border-color: #7A6148 !important;
+    color: #6A5440 !important;
+    box-shadow: 0 2px 8px rgba(142,115,91,0.15) !important;
 }
 .stButton > button *:hover,
 .stDownloadButton > button *:hover {
-    color: #2C2010 !important;
+    color: #6A5440 !important;
 }
 .stButton > button:active,
 .stDownloadButton > button:active {
-    background: rgba(142,115,91,0.18) !important;
+    background: #EDE8E0 !important;
     border-color: #7A6148 !important;
-    box-shadow: none !important;
+    box-shadow: 0 1px 3px rgba(142,115,91,0.12) !important;
     transform: translateY(1px) !important;
-    color: #2C2010 !important;
+    color: #6A5440 !important;
 }
 
 /* ── 文字輸入（圓角 12px）────────────────────────────────────────────── */
@@ -220,14 +209,14 @@ html, body, [class*="css"], * {
     color: #3A3228 !important;
 }
 
-/* ── Sidebar 導航（YouTube 風格）────────────────────────────────────── */
+/* ── Sidebar 導航（Gemini Pill 風格）───────────────────────────────── */
 
 [data-testid="stSidebar"] .stButton {
-    margin: 0 !important;
+    margin: 4px 0 !important;
     width: 100% !important;
 }
 
-/* 預設：完全透明，無邊框（用高特異性選擇器蓋過全域 .stButton）*/
+/* 預設：完全透明，無邊框，蓋過全域按鈕樣式 */
 [data-testid="stSidebar"] .element-container .stButton > button,
 [data-testid="stSidebar"] .stButton > button {
     width: 100% !important;
@@ -236,13 +225,13 @@ html, body, [class*="css"], * {
     background: transparent !important;
     color: #3A3228 !important;
     border: none !important;
-    border-radius: 10px !important;
+    border-radius: 20px !important;
     box-shadow: none !important;
     font-size: 14px !important;
     font-weight: 500 !important;
     letter-spacing: 0.1px !important;
-    padding: 8px 12px 8px 44px !important;
-    margin: 2px 0 !important;
+    padding: 10px 12px 10px 44px !important;
+    margin: 0 !important;
     min-height: unset !important;
     position: relative !important;
     transition: background 0.15s !important;
@@ -252,26 +241,26 @@ html, body, [class*="css"], * {
 [data-testid="stSidebar"] .stButton > button::before {
     content: "" !important;
     position: absolute !important;
-    left: 12px !important;
+    left: 14px !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
     width: 18px !important;
     height: 18px !important;
     background-repeat: no-repeat !important;
     background-size: contain !important;
-    opacity: 0.6 !important;
+    opacity: 0.55 !important;
     transition: opacity 0.15s !important;
 }
 
-/* Hover：淺灰底（與 YouTube 一樣）*/
+/* Hover：極淺棕底，Pill 圓角 */
 [data-testid="stSidebar"] .stButton > button:hover {
-    background: rgba(0,0,0,0.06) !important;
+    background: rgba(142,115,91,0.08) !important;
     border: none !important;
     box-shadow: none !important;
-    color: #1A1714 !important;
+    color: #2C2218 !important;
 }
 [data-testid="stSidebar"] .stButton > button:hover::before {
-    opacity: 0.9 !important;
+    opacity: 0.85 !important;
 }
 [data-testid="stSidebar"] .stButton > button:active {
     transform: none !important;
@@ -642,22 +631,22 @@ with st.sidebar:
 
     _NAV = ["數據總覽", "風險查詢", "模型表現", "預測結果"]
 
-    # 注入 active 樣式：膠囊底色 + inset 左線 + icon 提亮
+    # 注入 active 樣式：Gemini Pill — 淺咖啡底色 + 20px 圓角 + icon 提亮
     _idx = _NAV.index(st.session_state["page"]) + 1
     st.markdown(f"""<style>
 [data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button {{
-    background: rgba(0,0,0,0.09) !important;
-    color: #1A1714 !important;
+    background: #EAE7E2 !important;
+    color: #2C2218 !important;
     font-weight: 700 !important;
     border: none !important;
     box-shadow: none !important;
-    border-radius: 10px !important;
+    border-radius: 20px !important;
 }}
 [data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button::before {{
     opacity: 1 !important;
 }}
 [data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button:hover {{
-    background: rgba(0,0,0,0.12) !important;
+    background: #E0DBD4 !important;
 }}
 </style>""", unsafe_allow_html=True)
 
