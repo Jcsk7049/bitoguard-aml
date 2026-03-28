@@ -71,7 +71,7 @@ html, body, [class*="css"], * {
     -webkit-font-smoothing: antialiased !important;
 }
 .stApp {
-    background-color: #F9F8F6 !important;
+    background-color: #F2EFE9 !important;
 }
 
 /* ── 主內容容器：限寬 + 左右留白，避免撐滿螢幕 ─────────────────────── */
@@ -124,11 +124,11 @@ html, body, [class*="css"], * {
 
 /* ── 文字輸入（圓角 12px）────────────────────────────────────────────── */
 [data-testid="stTextInput"] input {
-    background: #FDFCFA !important;
+    background: #FFFFFF !important;
     border: 1px solid #D8D2C8 !important;
     border-radius: 12px !important;
     color: #3A3228 !important;
-    box-shadow: inset 0 1px 3px rgba(60,50,40,0.06) !important;
+    box-shadow: inset 0 1px 3px rgba(60,50,40,0.04) !important;
     font-size: 14px !important;
     letter-spacing: 0.3px !important;
     padding: 0.5rem 1rem !important;
@@ -141,7 +141,7 @@ html, body, [class*="css"], * {
 
 /* ── Selectbox（圓角 12px）──────────────────────────────────────────── */
 [data-testid="stSelectbox"] > div > div {
-    background: #FDFCFA !important;
+    background: #FFFFFF !important;
     border: 1px solid #D8D2C8 !important;
     border-radius: 12px !important;
     color: #3A3228 !important;
@@ -194,7 +194,7 @@ hr {
     overflow: hidden !important;
 }
 [data-testid="stDataFrame"] th {
-    background: #EEEBe4 !important;
+    background: #F5F2EC !important;
     color: #8A8078 !important;
     font-size: 12px !important;
     letter-spacing: 0.5px !important;
@@ -205,31 +205,34 @@ hr {
 
 /* ── Native st.metric override ──────────────────────────────────────── */
 [data-testid="stMetric"] {
-    background: #F3F1EC !important;
-    border: 1px solid #E0DDD5 !important;
+    background: #FFFFFF !important;
+    border: 1px solid #E6E2D9 !important;
     border-radius: 4px !important;
     padding: 14px 18px !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03) !important;
 }
 [data-testid="stMetricLabel"] p { color: #8A8078 !important; font-size: 12px !important; }
 [data-testid="stMetricValue"]   { color: #2C2720 !important; }
 
 /* ── 自訂元件類別 ────────────────────────────────────────────────────── */
 .bg-card {
-    background: #F3F1EC;
-    border: 1px solid #E0DDD5;
+    background: #FFFFFF;
+    border: 1px solid #E6E2D9;
     border-radius: 16px;
     padding: 24px 28px;
     margin-bottom: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 }
 .kpi-strip {
-    background: #F3F1EC;
-    border: 1px solid #E0DDD5;
+    background: #FFFFFF;
+    border: 1px solid #E6E2D9;
     border-radius: 16px;
     padding: 18px 22px;
     display: flex;
     align-items: center;
     gap: 14px;
     margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.03);
 }
 .kpi-accent { width: 3px; height: 42px; border-radius: 3px; flex-shrink: 0; }
 .kpi-label  { font-size: 10px; color: #A8A098; text-transform: uppercase;
@@ -362,11 +365,11 @@ def _icon(name: str, size: int = 14, color: str = "#8A8078") -> str:
 # ── Plotly 暗色主題基底（所有圖表共用）──────────────────────────────────────
 _CL = dict(
     template="plotly_white",
-    paper_bgcolor="#F3F1EC",
-    plot_bgcolor="#F9F8F6",
+    paper_bgcolor="#F2EFE9",
+    plot_bgcolor="#FFFFFF",
     font=dict(color="#6A6058", family="Microsoft JhengHei, Inter, sans-serif", size=12),
-    xaxis=dict(gridcolor="#E8E4DC", linecolor="#D4CEC4", zerolinecolor="#D4CEC4"),
-    yaxis=dict(gridcolor="#E8E4DC", linecolor="#D4CEC4", zerolinecolor="#D4CEC4"),
+    xaxis=dict(gridcolor="#EAE6DE", linecolor="#D8D2C8", zerolinecolor="#D8D2C8"),
+    yaxis=dict(gridcolor="#EAE6DE", linecolor="#D8D2C8", zerolinecolor="#D8D2C8"),
 )
 
 # ── 自訂提示框 helper ─────────────────────────────────────────────────────────
