@@ -954,15 +954,15 @@ elif page == "模型表現":
 
         _section("各折驗證結果")
         fold_table = pd.DataFrame(folds)
-        fold_table.columns = ["Fold", "門檻", "Precision", "Recall", "F1", "AUC", "正類數"]
-        for col in ["Precision", "Recall", "F1", "AUC"]:
+        fold_table.columns = ["Fold", "門檻", "Precision", "Recall", "F1", "AUC", "準確度", "正類數"]
+        for col in ["Precision", "Recall", "F1", "AUC", "準確度"]:
             fold_table[col] = (fold_table[col] * 100).round(2)
         st.dataframe(
             fold_table.style
                 .highlight_max(subset=["F1", "AUC"], color="#D4EAE0")
                 .highlight_min(subset=["F1", "AUC"], color="#EAD8D4")
                 .format({"Precision": "{:.1f}%", "Recall": "{:.1f}%",
-                         "F1": "{:.1f}%", "AUC": "{:.1f}%"}),
+                         "F1": "{:.1f}%", "AUC": "{:.1f}%", "準確度": "{:.1f}%"}),
             use_container_width=True,
         )
 
