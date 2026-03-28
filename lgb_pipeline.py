@@ -17,6 +17,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import lightgbm as lgb
+import xgboost as xgb
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.metrics import (
     f1_score, precision_score, recall_score, roc_auc_score, confusion_matrix,
     accuracy_score
@@ -390,9 +392,30 @@ def main():
     print(f"\n訓練特徵矩陣: {X.shape}  |  預測集: {X_pred.shape}")
     print(f"正類比率: {y.mean():.4f}  ({y.sum()}/{len(y)})")
 
-    # ── Stage 2a：scale_pos_weight 網格搜尋（3-Fold 快速估計）────────────────
-    print("\n[Stage 2a] scale_pos_weight 網格搜尋...")
-    skf3 = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    ALL_FEATS = FEATS  # 後續若加入輔助模型特徵可在此擴充
+
+    # ── Stage 2a：XGBoost 5-Fold OOF（輔助模型）────────────────────────────
+    print("\n[Stage 2a] XGBoost 5-Fold OOF（輔助模型）...")
+    pos_ratio = int((y == 0).sum() / max((y == 1).sum(), 1))
+    xgb_model = xgb.XGBClassifier(
+        n_estimators=500, max_depth=5, learning_rate=0.05,
+        subsample=0.8, colsample_bytree=0.8,
+        scale_pos_weight=max(1, pos_ratio // 5),
+        eval_metric="auc", random_state=42, n_jobs=-1, verbosity=0,
+    )
+    skf_aux = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    oof_xgb   = np.zeros(len(y), dtype=np.float32)
+    test_xgb  = np.zeros(len(X_pred), dtype=np.float32)
+    for tr_idx, val_idx in skf_aux.split(X, y):
+        xgb_model.fit(X[tr_idx], y[tr_idx])
+        oof_xgb[val_idx] = xgb_model.predict_proba(X[val_idx])[:, 1]
+        test_xgb += xgb_model.predict_proba(X_pred)[:, 1] / 5
+    xgb_auc = roc_auc_score(y, oof_xgb)
+    print(f"  XGBoost OOF AUC = {xgb_auc:.4f}")
+
+    # ── Stage 2b：scale_pos_weight 網格搜尋（LightGBM，3-Fold）────────────────
+    print("\n[Stage 2b] LightGBM scale_pos_weight 網格搜尋...")
+    skf3 = StratifiedKFold(n_splits=3, shuffle=True, random_state=0)
     spw_results = {}
     for spw in SPW_GRID:
         params = {**LGB_BASE_PARAMS, "scale_pos_weight": spw}
@@ -400,8 +423,8 @@ def main():
         for tr_idx, val_idx in skf3.split(X, y):
             X_tr, X_val = X[tr_idx], X[val_idx]
             y_tr, y_val = y[tr_idx], y[val_idx]
-            dtrain = lgb.Dataset(X_tr, label=y_tr, feature_name=FEATS)
-            dval   = lgb.Dataset(X_val, label=y_val, feature_name=FEATS, reference=dtrain)
+            dtrain = lgb.Dataset(X_tr, label=y_tr, feature_name=ALL_FEATS)
+            dval   = lgb.Dataset(X_val, label=y_val, feature_name=ALL_FEATS, reference=dtrain)
             m = lgb.train(params, dtrain, num_boost_round=NUM_ROUNDS,
                           valid_sets=[dval],
                           callbacks=[lgb.log_evaluation(period=-1),
@@ -409,9 +432,9 @@ def main():
             oof_tmp[val_idx] = m.predict(X_val)
         auc_tmp = roc_auc_score(y, oof_tmp)
         best_t_tmp, comp_tmp = best_threshold_composite(y, oof_tmp, auc_tmp)
-        pred_tmp  = (oof_tmp >= best_t_tmp).astype(int)
-        f1_tmp    = f1_score(y, pred_tmp, zero_division=0)
-        acc_tmp   = accuracy_score(y, pred_tmp)
+        pred_tmp = (oof_tmp >= best_t_tmp).astype(int)
+        f1_tmp   = f1_score(y, pred_tmp, zero_division=0)
+        acc_tmp  = accuracy_score(y, pred_tmp)
         spw_results[spw] = {"composite": comp_tmp, "auc": auc_tmp,
                              "f1": f1_tmp, "acc": acc_tmp, "thr": best_t_tmp}
         print(f"  SPW={spw:>2}  composite={comp_tmp:.4f}  AUC={auc_tmp:.4f}"
@@ -422,8 +445,8 @@ def main():
           f"(composite={spw_results[best_spw]['composite']:.4f})")
     LGB_PARAMS = {**LGB_BASE_PARAMS, "scale_pos_weight": best_spw}
 
-    # ── Stage 2b：5-Fold 完整交叉驗證（使用最佳 SPW）────────────────────────
-    print("\n[Stage 2b] 5-Fold StratifiedKFold 交叉驗證...")
+    # ── Stage 2c：LightGBM 5-Fold OOF（主模型）──────────────────────────────
+    print("\n[Stage 2c] LightGBM 5-Fold 交叉驗證（主模型）...")
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     oof_probs = np.zeros(len(y), dtype=np.float32)
     test_probs = np.zeros(len(X_pred), dtype=np.float32)
@@ -433,8 +456,8 @@ def main():
         X_tr, X_val = X[tr_idx], X[val_idx]
         y_tr, y_val = y[tr_idx], y[val_idx]
 
-        dtrain = lgb.Dataset(X_tr, label=y_tr, feature_name=FEATS)
-        dval   = lgb.Dataset(X_val, label=y_val, feature_name=FEATS, reference=dtrain)
+        dtrain = lgb.Dataset(X_tr, label=y_tr, feature_name=ALL_FEATS)
+        dval   = lgb.Dataset(X_val, label=y_val, feature_name=ALL_FEATS, reference=dtrain)
 
         model = lgb.train(
             LGB_PARAMS,
@@ -476,7 +499,7 @@ def main():
         # 保存最後一折的特徵重要度
         if fold == 5:
             fi = pd.DataFrame({
-                "feature": FEATS,
+                "feature": ALL_FEATS,
                 "importance": model.feature_importance(importance_type="gain"),
             }).sort_values("importance", ascending=False)
             fi.to_csv(OUT_DIR / "feature_importance.csv", index=False)
@@ -511,13 +534,69 @@ def main():
     print(f"    FN={fn:,}  TN={tn:,}")
     print("=" * 60)
 
+    # ── Stage 3b：混合權重搜尋（LGB 主導，XGB 輔助）────────────────────────
+    print("\n[Stage 3b] 加權混合搜尋（LGB 主、XGB 輔）...")
+    best_w, best_blend_comp = 1.0, -1.0
+    for w_lgb in np.arange(0.5, 1.01, 0.05):
+        w_xgb = 1.0 - w_lgb
+        blend = w_lgb * oof_probs + w_xgb * oof_xgb
+        blend_auc = roc_auc_score(y, blend)
+        thr_b, comp_b = best_threshold_composite(y, blend, blend_auc)
+        if comp_b > best_blend_comp:
+            best_blend_comp, best_w = comp_b, w_lgb
+            best_blend_thr = thr_b
+    print(f"  最佳混合比例: LGB={best_w:.2f}  XGB={1-best_w:.2f}"
+          f"  composite={best_blend_comp:.4f}  thr={best_blend_thr:.2f}")
+
+    # 若混合比純 LGB 更好則採用，否則維持純 LGB
+    if best_blend_comp > best_comp:
+        final_oof   = best_w * oof_probs + (1 - best_w) * oof_xgb
+        final_test  = best_w * test_probs + (1 - best_w) * test_xgb
+        final_thr   = best_blend_thr
+        final_auc   = roc_auc_score(y, final_oof)
+        _, final_comp = best_threshold_composite(y, final_oof, final_auc)
+        final_pred  = (final_oof >= final_thr).astype(int)
+        final_model = f"LGB({best_w:.2f}) + XGB({1-best_w:.2f})"
+        print(f"  採用混合方案（比純 LGB 提升 {best_blend_comp - best_comp:.4f}）")
+    else:
+        final_oof   = oof_probs
+        final_test  = test_probs
+        final_thr   = best_t
+        final_auc   = oof_auc
+        final_comp  = best_comp
+        final_pred  = oof_pred
+        final_model = f"LGB only (blend 未改善)"
+        print(f"  維持純 LGB 方案（混合未能改善）")
+
+    final_f1   = f1_score(y, final_pred, zero_division=0)
+    final_prec = precision_score(y, final_pred, zero_division=0)
+    final_rec  = recall_score(y, final_pred, zero_division=0)
+    final_acc  = accuracy_score(y, final_pred)
+    tn2, fp2, fn2, tp2 = confusion_matrix(y, final_pred, labels=[0, 1]).ravel()
+
+    print("\n" + "=" * 60)
+    print("  ★ 最終結果（含輔助模型混合）★")
+    print("=" * 60)
+    print(f"  模型      : {final_model}")
+    print(f"  AUC       : {final_auc:.4f}")
+    print(f"  F1-Score  : {final_f1:.4f}")
+    print(f"  Precision : {final_prec:.4f}")
+    print(f"  Recall    : {final_rec:.4f}")
+    print(f"  Accuracy  : {final_acc:.4f}")
+    print(f"  Composite : {final_comp:.4f}")
+    print(f"  Threshold : {final_thr:.2f}")
+    print(f"\n  混淆矩陣:")
+    print(f"    TP={tp2:,}  FP={fp2:,}")
+    print(f"    FN={fn2:,}  TN={tn2:,}")
+    print("=" * 60)
+
     # ── 儲存 OOF 機率（供圖表生成使用）─────────────────────────────────────
-    oof_df = pd.DataFrame({"true_label": y, "oof_prob": oof_probs})
+    oof_df = pd.DataFrame({"true_label": y, "oof_prob": final_oof})
     oof_df.to_csv(OUT_DIR / "oof_predictions.csv", index=False)
 
     # ── 生成提交檔 ────────────────────────────────────────────────────────────
     print("\n[Stage 4] 生成 submission.csv...")
-    pred_labels = (test_probs >= best_t).astype(int)
+    pred_labels = (final_test >= final_thr).astype(int)
     n_black = pred_labels.sum()
     n_normal = len(pred_labels) - n_black
 
@@ -528,7 +607,7 @@ def main():
     submission.to_csv(OUT_DIR / "submission.csv", index=False)
 
     submission_prob = submission.copy()
-    submission_prob["probability"] = test_probs
+    submission_prob["probability"] = final_test
     submission_prob.to_csv(OUT_DIR / "submission_with_prob.csv", index=False)
 
     print(f"  submission.csv 已儲存")
@@ -536,20 +615,22 @@ def main():
 
     # ── 儲存報告 ─────────────────────────────────────────────────────────────
     report = {
-        "model": "LightGBM",
+        "model": final_model,
         "params": LGB_PARAMS,
         "num_rounds": NUM_ROUNDS,
-        "features": FEATS,
+        "features": ALL_FEATS,
         "oof_metrics": {
-            "auc":       round(float(oof_auc), 4),
-            "f1":        round(float(best_f1), 4),
-            "precision": round(float(oof_prec), 4),
-            "recall":    round(float(oof_rec), 4),
-            "threshold": round(float(best_t), 2),
-            "accuracy":  round(float(oof_acc), 4),
-            "composite": round(float(best_comp), 4),
+            "auc":       round(float(final_auc), 4),
+            "f1":        round(float(final_f1), 4),
+            "precision": round(float(final_prec), 4),
+            "recall":    round(float(final_rec), 4),
+            "threshold": round(float(final_thr), 2),
+            "accuracy":  round(float(final_acc), 4),
+            "composite": round(float(final_comp), 4),
         },
         "best_spw": best_spw,
+        "blend_weight_lgb": round(float(best_w), 2),
+        "xgb_oof_auc": round(float(xgb_auc), 4),
         "spw_search": {str(k): v for k, v in spw_results.items()},
         "submission": {
             "total": int(len(submission)),
