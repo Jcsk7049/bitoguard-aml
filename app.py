@@ -86,46 +86,62 @@ html, body, [class*="css"], * {
     border-right: 1px solid #DDD8CE !important;
 }
 
-/* ── 側邊欄收合按鈕 ─────────────────────────────────────────────────── */
-/* 藏掉壞掉的 Material Icon 文字 */
-[data-testid="stSidebarCollapseButton"] span {
-    font-size: 0 !important;
-    line-height: 0 !important;
-    visibility: hidden !important;
-}
-/* 讓按鈕本身有明確樣式 */
-[data-testid="stSidebarCollapseButton"] button {
-    background: #E8E2D8 !important;
-    border: 1px solid #C8C0B0 !important;
-    border-radius: 8px !important;
-    width: 28px !important;
-    height: 28px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+/* ── 側邊欄：收合 / 展開 按鈕（Ghost 風格）─────────────────────────── */
+
+/* 共用樣式：收合按鈕（在 sidebar 內）& 展開按鈕（sidebar 收合後左上角）*/
+[data-testid="stSidebarCollapseButton"] button,
+[data-testid="stSidebarUserContent"] ~ div button,
+[data-testid="collapsedControl"] button,
+button[aria-label="Open sidebar"],
+button[aria-label="Close sidebar"] {
+    background: transparent !important;
+    border: 1px solid #C4BAB0 !important;
+    border-radius: 10px !important;
     box-shadow: none !important;
-    color: #6A6058 !important;
-    padding: 0 !important;
+    padding: 6px !important;
     min-height: unset !important;
+    transition: background 0.2s, border-color 0.2s !important;
+    color: #3A3228 !important;
 }
-[data-testid="stSidebarCollapseButton"] button:hover {
-    background: #D8D0C4 !important;
-    border-color: #A89888 !important;
+[data-testid="stSidebarCollapseButton"] button:hover,
+[data-testid="collapsedControl"] button:hover,
+button[aria-label="Open sidebar"]:hover,
+button[aria-label="Close sidebar"]:hover {
+    background: rgba(142,115,91,0.10) !important;
+    border-color: #8E735B !important;
     box-shadow: none !important;
-}
-/* SVG 箭頭（Streamlit 原生）保留並調色 */
-[data-testid="stSidebarCollapseButton"] button svg {
-    stroke: #6A6058 !important;
-    width: 16px !important;
-    height: 16px !important;
 }
 
-/* 側邊欄收合後防止導航文字溢出 */
+/* SVG 箭頭調色 */
+[data-testid="stSidebarCollapseButton"] button svg,
+[data-testid="collapsedControl"] button svg,
+button[aria-label="Open sidebar"] svg,
+button[aria-label="Close sidebar"] svg {
+    stroke: #6A6058 !important;
+    fill: none !important;
+}
+
+/* 隱藏壞掉的 Material Icon 文字 */
+[data-testid="stSidebarCollapseButton"] span,
+[data-testid="collapsedControl"] span {
+    font-size: 0 !important;
+    visibility: hidden !important;
+    line-height: 0 !important;
+}
+
+/* 展開按鈕（sidebar 收合後顯示在左上角）*/
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    align-items: flex-start !important;
+    padding: 1rem 0.5rem !important;
+}
+
+/* 側邊欄收合後，內容全部隱藏，只露出收合按鈕 */
 [data-testid="stSidebar"][aria-expanded="false"] {
     overflow: hidden !important;
     min-width: 0 !important;
 }
-[data-testid="stSidebar"][aria-expanded="false"] * {
+[data-testid="stSidebar"][aria-expanded="false"] > div > * {
     visibility: hidden !important;
 }
 [data-testid="stSidebarCollapseButton"],
