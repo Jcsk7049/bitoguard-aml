@@ -88,31 +88,8 @@ html, body, [class*="css"], * {
 
 /* ── 側邊欄收合 / 展開 按鈕 ─────────────────────────────────────────── */
 
-/* 徹底隱藏 Material Icon 壞字：直接針對 button 內所有文字節點 */
-[data-testid="stSidebarCollapseButton"] button *,
-[data-testid="collapsedControl"] button * {
-    font-size: 0 !important;
-    line-height: 0 !important;
-    letter-spacing: 0 !important;
-    color: transparent !important;
-}
-
-/* 但 SVG 要例外顯示 */
-[data-testid="stSidebarCollapseButton"] button svg,
-[data-testid="stSidebarCollapseButton"] button svg *,
-[data-testid="collapsedControl"] button svg,
-[data-testid="collapsedControl"] button svg * {
-    font-size: unset !important;
-    color: unset !important;
-    stroke: #5D5A54 !important;
-    width: 18px !important;
-    height: 18px !important;
-    display: block !important;
-}
-
-/* 按鈕本體：完全透明，不繼承任何全域 .stButton 樣式 */
-[data-testid="stSidebarCollapseButton"] button,
-[data-testid="collapsedControl"] button {
+/* sidebar 展開時的收合按鈕 */
+[data-testid="stSidebarCollapseButton"] button {
     all: unset !important;
     display: flex !important;
     align-items: center !important;
@@ -123,12 +100,50 @@ html, body, [class*="css"], * {
     cursor: pointer !important;
     transition: background 0.2s !important;
 }
-[data-testid="stSidebarCollapseButton"] button:hover,
+[data-testid="stSidebarCollapseButton"] button:hover {
+    background: rgba(93,90,84,0.10) !important;
+}
+[data-testid="stSidebarCollapseButton"] button svg {
+    stroke: #5D5A54 !important;
+    width: 18px !important;
+    height: 18px !important;
+    display: block !important;
+}
+[data-testid="stSidebarCollapseButton"] button span {
+    display: none !important;
+}
+
+/* sidebar 收合後：把整個 collapsedControl 隱藏，防止文字洩出 */
+[data-testid="collapsedControl"] {
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+/* 但保留按鈕可點 */
+[data-testid="collapsedControl"] button {
+    visibility: visible !important;
+    pointer-events: auto !important;
+    all: unset !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    margin: 0.6rem 0.3rem !important;
+}
 [data-testid="collapsedControl"] button:hover {
     background: rgba(93,90,84,0.10) !important;
 }
-[data-testid="collapsedControl"] {
-    padding: 0.6rem 0.3rem !important;
+[data-testid="collapsedControl"] button svg {
+    visibility: visible !important;
+    stroke: #5D5A54 !important;
+    width: 18px !important;
+    height: 18px !important;
+    display: block !important;
+}
+[data-testid="collapsedControl"] button span {
+    display: none !important;
 }
 [data-testid="stSidebar"] > div:first-child {
     padding: 2rem 1.6rem 1.5rem !important;
