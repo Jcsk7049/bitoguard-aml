@@ -798,21 +798,21 @@ elif page == "風險查詢":
                 thr = m["threshold"]
 
                 if prob >= 0.5:
-                    risk_level, risk_color, risk_bg = "極高風險 · 建議立即審查", "#B06050", "#F8EDEB"
+                    risk_level, risk_color, risk_bg, risk_border = "極高風險 · 建議立即審查", "#C94C4C", "#FDF2F2", "#C94C4C"
                 elif prob >= thr:
-                    risk_level, risk_color, risk_bg = "高風險 · 列入觀察", "#A88040", "#F5F0E4"
+                    risk_level, risk_color, risk_bg, risk_border = "高風險 · 列入觀察", "#D9534F", "#FDF4F2", "#D9534F"
                 elif prob >= thr * 0.5:
-                    risk_level, risk_color, risk_bg = "中等風險 · 持續監控", "#908050", "#F4F2E4"
+                    risk_level, risk_color, risk_bg, risk_border = "中等風險 · 持續監控", "#C08040", "#F8F3E8", "#C08040"
                 else:
-                    risk_level, risk_color, risk_bg = "低風險 · 行為正常", "#5A8A6A", "#EAF2EE"
+                    risk_level, risk_color, risk_bg, risk_border = "低風險 · 行為正常", "#4A8A6A", "#EDF6F1", "#4A8A6A"
 
                 # 不對稱：大機率（2份）+ 細節表格（3份）
                 col_prob, col_detail = st.columns([2, 3])
 
                 with col_prob:
                     st.markdown(f"""
-                    <div style="background:{risk_bg};border:1px solid {risk_color}35;
-                                border-left:4px solid {risk_color};border-radius:4px;
+                    <div style="background:{risk_bg};border:1px solid {risk_border}40;
+                                border-left:4px solid {risk_border};border-radius:12px;
                                 padding:30px 22px;text-align:center;">
                         <div style="font-size:10px;letter-spacing:2.5px;text-transform:uppercase;
                                     color:#505068;margin-bottom:14px;">USER ID {uid}</div>
@@ -826,14 +826,16 @@ elif page == "風險查詢":
 
                 with col_detail:
                     verdict_html = (
-                        "<span style='background:#F0E0DC;color:#A05848;padding:3px 10px;"
-                        "border-radius:3px;font-size:12px;font-weight:700;'>黑名單 ✗</span>"
+                        "<span style='background:rgba(217,83,79,0.10);color:#C94C4C;"
+                        "padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;"
+                        "letter-spacing:0.3px;'>黑名單 ✗</span>"
                         if status == 1 else
-                        "<span style='background:#DCF0E4;color:#407850;padding:3px 10px;"
-                        "border-radius:3px;font-size:12px;font-weight:700;'>正常 ✓</span>"
+                        "<span style='background:rgba(74,138,106,0.10);color:#3A7A58;"
+                        "padding:4px 12px;border-radius:6px;font-size:12px;font-weight:700;"
+                        "letter-spacing:0.3px;'>正常 ✓</span>"
                     )
                     diff = (prob - thr) * 100
-                    diff_color = "#B06050" if diff > 0 else "#5A8A6A"
+                    diff_color = "#C94C4C" if diff > 0 else "#4A8A6A"
                     diff_str = f"+{diff:.1f}%" if diff > 0 else f"{diff:.1f}%"
                     st.markdown(f"""
                     <div class="bg-card" style="margin-top:0;">
@@ -863,24 +865,28 @@ elif page == "風險查詢":
                     </div>
                     """, unsafe_allow_html=True)
 
-                # 儀表板（全寬）
+                # 儀表板（全寬）— 高風險時指針與區塊自動轉紅
+                _gauge_bar   = risk_color
+                _gauge_num   = risk_color if prob >= thr else "#3A3228"
+                _step_high   = "#FADADA" if prob >= thr else "#F0E8E4"
+                _step_crit   = "#F5C0C0" if prob >= 0.5  else _step_high
                 gauge = go.Figure(go.Indicator(
                     mode="gauge+number",
                     value=prob * 100,
                     title={"text": "風險分數 (%)", "font": {"color": "#8A8078", "size": 13}},
-                    number={"suffix": "%", "font": {"size": 34, "color": "#3A3228"}},
+                    number={"suffix": "%", "font": {"size": 34, "color": _gauge_num}},
                     gauge={
                         "axis": {"range": [0, 100], "tickcolor": "#C0B8AE", "tickwidth": 1},
-                        "bar":  {"color": risk_color},
-                        "bgcolor": "#F9F8F6",
+                        "bar":  {"color": _gauge_bar},
+                        "bgcolor": "#FFFFFF",
                         "borderwidth": 0,
                         "steps": [
                             {"range": [0,        thr*50],  "color": "#E8F0EC"},
                             {"range": [thr*50,   thr*100], "color": "#F0EDE0"},
-                            {"range": [thr*100,  50],      "color": "#F0E8E4"},
-                            {"range": [50,       100],     "color": "#ECD8D4"},
+                            {"range": [thr*100,  50],      "color": _step_high},
+                            {"range": [50,       100],     "color": _step_crit},
                         ],
-                        "threshold": {"line": {"color": "#B0A898", "width": 2},
+                        "threshold": {"line": {"color": risk_color, "width": 2},
                                       "value": thr * 100},
                     }
                 ))
