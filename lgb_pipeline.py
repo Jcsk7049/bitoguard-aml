@@ -115,7 +115,7 @@ def build_features(train_label: pd.DataFrame,
             .reset_index(name="max_ip_shared_users")
         )
         ip_anomaly = (
-            ip_df2[ip_df2["users_per_ip"] > 5]
+            ip_df2[ip_df2["users_per_ip"] > 1]
             .groupby("user_id").size().reset_index(name="ip_anomaly")
         )
         twd_g = (twd_g
@@ -158,7 +158,7 @@ def build_features(train_label: pd.DataFrame,
                       on="user_id", how="left")
 
     # ── 4. USDT/TWD 交易特徵 ────────────────────────────────────────────────
-    print("  [4/6] usdt_twd_trading features...")
+    print("  [4/6] usdt_twd_trading + usdt_swap features...")
     ut = usdt_trading.copy()
     # 入/出金不對稱：大量入金但少量出金 → 洗錢嫌疑
     if "trade_samount" in ut.columns and "kind" in ut.columns:
@@ -167,6 +167,7 @@ def build_features(train_label: pd.DataFrame,
         ut_g = ut.groupby("user_id").agg(
             usdt_deposit_vol  = ("trade_samount", lambda x: x[ut.loc[x.index, "kind"] == 0].sum()),
             usdt_withdraw_vol = ("trade_samount", lambda x: x[ut.loc[x.index, "kind"] == 1].sum()),
+            usdt_tx_count     = ("trade_samount", "count"),
         ).reset_index()
         ut_g["asymmetry_flag"] = (
             (ut_g["usdt_deposit_vol"] > 0) &
@@ -175,6 +176,29 @@ def build_features(train_label: pd.DataFrame,
     else:
         ut_g = ut[["user_id"]].drop_duplicates() if "user_id" in ut.columns else pd.DataFrame(columns=["user_id"])
         ut_g["asymmetry_flag"] = 0
+        ut_g["usdt_tx_count"] = 0
+
+    # usdt_swap 特徵（法幣快速換加密貨幣 → 洗錢訊號）
+    try:
+        swap = load_csv("usdt_swap")
+        swap["twd_samount"] = pd.to_numeric(swap.get("twd_samount", pd.Series(0, index=swap.index)),
+                                             errors="coerce").fillna(0)
+        swap["kind"] = pd.to_numeric(swap.get("kind", pd.Series(0, index=swap.index)),
+                                      errors="coerce").fillna(0)
+        swap["created_at"] = pd.to_datetime(swap["created_at"], errors="coerce", utc=True)
+        swap_g = swap.groupby("user_id").agg(
+            swap_count       = ("twd_samount", "count"),
+            swap_twd_volume  = ("twd_samount", "sum"),
+            swap_buy_count   = ("kind", lambda x: (x == 0).sum()),
+            swap_sell_count  = ("kind", lambda x: (x == 1).sum()),
+        ).reset_index()
+        swap_g["swap_buy_ratio"] = (
+            swap_g["swap_buy_count"] / swap_g["swap_count"].replace(0, 1)
+        )
+        print(f"    usdt_swap: {len(swap):,} 筆")
+    except FileNotFoundError:
+        swap_g = pd.DataFrame(columns=["user_id", "swap_count", "swap_twd_volume",
+                                        "swap_buy_count", "swap_sell_count", "swap_buy_ratio"])
 
     # ── 5. 圖特徵：黑名單鄰居 ─────────────────────────────────────────────
     print("  [5/6] graph features (blacklist neighbors)...")
@@ -228,7 +252,7 @@ def build_features(train_label: pd.DataFrame,
     })
 
     # ── 6. 合併所有特徵 ──────────────────────────────────────────────────────
-    print("  [6/6] merging features...")
+    print("  [6/6] merging features + derived features...")
     feat = all_users.merge(ui[["user_id", "age", "kyc_level", "user_source"]], on="user_id", how="left")
     feat = feat.merge(twd_g[[
         "user_id", "twd_deposit_count", "twd_withdraw_count",
@@ -240,41 +264,71 @@ def build_features(train_label: pd.DataFrame,
         "user_id", "crypto_deposit_count", "crypto_withdraw_count",
         "crypto_currency_count", "min_retention_minutes", "retention_event_count"
     ]], on="user_id", how="left")
-    feat = feat.merge(ut_g[["user_id", "asymmetry_flag"]], on="user_id", how="left")
+    feat = feat.merge(ut_g[["user_id", "asymmetry_flag", "usdt_tx_count"]], on="user_id", how="left")
+    feat = feat.merge(swap_g[["user_id", "swap_count", "swap_twd_volume",
+                               "swap_buy_count", "swap_sell_count", "swap_buy_ratio"]],
+                      on="user_id", how="left")
     feat = feat.merge(graph_df[["user_id", "blacklist_neighbor_count", "is_direct_neighbor"]],
                       on="user_id", how="left")
 
     feat = feat.fillna(0)
+
+    # ── 衍生特徵（比率 & 密度）──────────────────────────────────────────────
+    feat["deposit_only_flag"] = (
+        (feat["twd_deposit_count"] > 0) & (feat["twd_withdraw_count"] == 0)
+    ).astype(int)
+    feat["twd_deposit_ratio"] = feat["twd_deposit_count"] / (
+        feat["twd_deposit_count"] + feat["twd_withdraw_count"] + 1
+    )
+    feat["crypto_net_flow"] = feat["crypto_deposit_count"] - feat["crypto_withdraw_count"]
+    feat["tx_per_day"] = (feat["twd_deposit_count"] + feat["twd_withdraw_count"]) / (
+        feat["age"].clip(lower=1)
+    )
+    feat["total_volume"] = feat["total_twd_volume"] + feat["swap_twd_volume"]
+    feat["swap_to_twd_ratio"] = feat["swap_twd_volume"] / (feat["total_twd_volume"] + 1)
+
     print(f"  Feature matrix: {feat.shape[0]} rows × {feat.shape[1]} cols")
     return feat
 
 
 # ── 訓練特徵列 ────────────────────────────────────────────────────────────────
 FEATS = [
+    # 用戶基本資訊
     "age", "kyc_level", "user_source",
+    # TWD 交易行為
     "twd_deposit_count", "twd_withdraw_count", "total_twd_volume", "avg_twd_amount",
     "night_tx_ratio", "high_speed_risk",
+    "unique_ip_count", "max_ip_shared_users", "ip_anomaly",
+    # 加密貨幣行為
     "crypto_deposit_count", "crypto_withdraw_count", "crypto_currency_count",
     "min_retention_minutes", "retention_event_count",
-    "unique_ip_count", "max_ip_shared_users", "ip_anomaly",
-    "asymmetry_flag", "blacklist_neighbor_count", "is_direct_neighbor",
+    # USDT 交易
+    "asymmetry_flag", "usdt_tx_count",
+    # usdt_swap（法幣快速換加密貨幣）
+    "swap_count", "swap_twd_volume", "swap_buy_count", "swap_sell_count", "swap_buy_ratio",
+    # 圖特徵
+    "blacklist_neighbor_count", "is_direct_neighbor",
+    # 衍生特徵
+    "deposit_only_flag", "twd_deposit_ratio", "crypto_net_flow",
+    "tx_per_day", "total_volume", "swap_to_twd_ratio",
 ]
 
-# ── LightGBM 最佳超參數 ───────────────────────────────────────────────────────
+# ── LightGBM 超參數（針對極度不平衡資料集優化）────────────────────────────────
 LGB_PARAMS = dict(
     objective="binary",
     metric="auc",
-    num_leaves=31,
+    num_leaves=63,
     learning_rate=0.01,
     feature_fraction=0.8,
     bagging_fraction=0.8,
     bagging_freq=5,
-    min_child_samples=20,
+    min_child_samples=10,     # 從 20 降到 10，更能學習稀有類別
+    is_unbalance=True,        # 自動處理類別不平衡
     seed=42,
     verbosity=-1,
     n_jobs=-1,
 )
-NUM_ROUNDS = 500
+NUM_ROUNDS = 1000             # 從 500 增加到 1000，配合 early stopping
 
 
 # ── 主流程 ────────────────────────────────────────────────────────────────────
@@ -332,7 +386,10 @@ def main():
             dtrain,
             num_boost_round=NUM_ROUNDS,
             valid_sets=[dval],
-            callbacks=[lgb.log_evaluation(period=-1)],  # 靜默
+            callbacks=[
+                lgb.log_evaluation(period=-1),       # 靜默
+                lgb.early_stopping(stopping_rounds=50, verbose=False),  # 50 輪無改善則停止
+            ],
         )
 
         val_prob  = model.predict(X_val)
