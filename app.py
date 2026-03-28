@@ -154,46 +154,44 @@ html, body, [class*="css"], * {
     color: #3A3228 !important;
 }
 
-/* ── Sidebar 導航按鈕（覆蓋主按鈕樣式，改為左線型 Tab）─────────────── */
+/* ── Sidebar 導航按鈕 ────────────────────────────────────────────────── */
 [data-testid="stSidebar"] .stButton > button {
     width: 100% !important;
     text-align: left !important;
     justify-content: flex-start !important;
     background: transparent !important;
-    color: #7A7068 !important;
+    color: #5D5A54 !important;
     border: none !important;
-    border-left: 3px solid transparent !important;
-    border-radius: 10px !important;
+    border-radius: 12px !important;
     box-shadow: none !important;
     font-size: 13.5px !important;
-    font-weight: 500 !important;
-    padding: 9px 14px 9px 13px !important;
-    margin: 2px 0 !important;
-    letter-spacing: 0.2px !important;
-    transition: background 0.15s, border-color 0.15s !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.3px !important;
+    padding: 12px 20px !important;
+    margin: 6px 0 !important;
+    transition: background 0.15s !important;
 }
 [data-testid="stSidebar"] .stButton > button:hover {
-    background: rgba(142,115,91,0.09) !important;
-    border-left-color: rgba(142,115,91,0.40) !important;
+    background: #E0DDD5 !important;
     color: #3A3228 !important;
     box-shadow: none !important;
+    border: none !important;
 }
 [data-testid="stSidebar"] .stButton > button:active {
     transform: none !important;
     box-shadow: none !important;
 }
-/* 刷新資料按鈕獨立樣式（側邊欄最後一個按鈕）*/
+/* 刷新資料按鈕（最後一個）*/
 [data-testid="stSidebar"] .stButton:last-of-type > button {
-    background: rgba(142,115,91,0.10) !important;
+    background: transparent !important;
     border: 1px solid #C8B8A4 !important;
-    border-left: 1px solid #C8B8A4 !important;
-    border-radius: 10px !important;
-    color: #6A5848 !important;
-    font-size: 12px !important;
-    box-shadow: none !important;
-    margin-top: 6px !important;
+    color: #8A7868 !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
     justify-content: center !important;
     text-align: center !important;
+    margin-top: 8px !important;
+    box-shadow: none !important;
 }
 
 /* ── Headings ───────────────────────────────────────────────────────── */
@@ -511,10 +509,15 @@ with st.sidebar:
     _idx = _NAV.index(st.session_state["page"]) + 1
     st.markdown(f"""<style>
 [data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button {{
-    background: rgba(142,115,91,0.13) !important;
-    border-left: 3px solid #8E735B !important;
-    color: #2C2010 !important;
-    font-weight: 600 !important;
+    background: #8E735B !important;
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(142,115,91,0.30) !important;
+}}
+[data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button:hover {{
+    background: #7A6148 !important;
+    color: #FFFFFF !important;
 }}
 </style>""", unsafe_allow_html=True)
 
