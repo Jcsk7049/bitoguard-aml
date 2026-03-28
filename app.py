@@ -459,10 +459,10 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     page = st.radio("", [
-        "總覽儀表板",
-        "用戶風險查詢",
-        "模型評估",
-        "提交結果",
+        "數據總覽",
+        "風險查詢",
+        "模型表現",
+        "預測結果",
     ], label_visibility="collapsed")
 
     st.markdown('<div style="border-top:1px solid #E0DDD5;margin:18px 0 14px;"></div>',
@@ -501,7 +501,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     st.markdown('<div style="margin-top:14px;"></div>', unsafe_allow_html=True)
-    if st.button("重新整理快取"):
+    if st.button("刷新資料"):
         st.cache_data.clear()
         st.rerun()
 
@@ -509,9 +509,9 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════════════════
 # 頁面 1：總覽儀表板
 # ══════════════════════════════════════════════════════════════════════════════
-if page == "總覽儀表板":
-    st.markdown('<div class="page-title">BitoGuard AML 反洗錢偵測系統</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">BitoPro Hackathon · Mule Account Detection · LightGBM 5-Fold CV</div>', unsafe_allow_html=True)
+if page == "數據總覽":
+    st.markdown('<div class="page-title">BitoGuard — 守護每一筆交易</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">即時分析 · 智能預警 · 合規守護</div>', unsafe_allow_html=True)
 
     # ── 計算數值 ──────────────────────────────────────────────────────────────
     _N_TOTAL, _N_POS = 51017, 1640
@@ -534,20 +534,20 @@ if page == "總覽儀表板":
         </div>"""
 
     with col_kpi:
-        _section("CORE METRICS — OOF 5-FOLD CROSS VALIDATION")
+        _section("模型整體表現")
         r1c1, r1c2 = st.columns(2)
         r2c1, r2c2 = st.columns(2)
         with r1c1:
-            st.markdown(_kpi_html("AUC", f"{m['auc']*100:.1f}%", "ROC 曲線下面積", "#6A8EBA"),
+            st.markdown(_kpi_html("AUC", f"{m['auc']*100:.1f}%", "模型排序風險的能力", "#6A8EBA"),
                         unsafe_allow_html=True)
         with r1c2:
-            st.markdown(_kpi_html("F1-SCORE", f"{m['f1']*100:.1f}%", "P·R 調和平均", "#7A9B8A"),
+            st.markdown(_kpi_html("F1-SCORE", f"{m['f1']*100:.1f}%", "精確與召回的平衡", "#7A9B8A"),
                         unsafe_allow_html=True)
         with r2c1:
-            st.markdown(_kpi_html("PRECISION", f"{m['precision']*100:.1f}%", "預測黑名單中正確的比例", "#A8906A"),
+            st.markdown(_kpi_html("PRECISION", f"{m['precision']*100:.1f}%", "標記出的帳號有多可信", "#A8906A"),
                         unsafe_allow_html=True)
         with r2c2:
-            st.markdown(_kpi_html("RECALL", f"{m['recall']*100:.1f}%", "實際黑名單被召回的比例", "#B07878"),
+            st.markdown(_kpi_html("RECALL", f"{m['recall']*100:.1f}%", "找到了多少真實風險帳號", "#B07878"),
                         unsafe_allow_html=True)
 
     with col_hero:
@@ -555,15 +555,15 @@ if page == "總覽儀表板":
         st.markdown(f"""
         <div class="bg-card" style="text-align:center;padding:30px 16px 24px;">
             <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
-                        color:#B0A898;margin-bottom:10px;">整體準確度</div>
+                        color:#B0A898;margin-bottom:10px;">整體判斷準確度</div>
             <div style="font-size:60px;font-weight:900;line-height:0.95;
                         color:#2C2720;letter-spacing:-3px;">{_acc*100:.1f}<span style="font-size:24px;color:#C0B8AE;">%</span></div>
             <div style="border-top:1px solid #E0DDD5;margin:18px 0 14px;"></div>
             <div style="font-size:10px;letter-spacing:1.2px;text-transform:uppercase;
-                        color:#B0A898;margin-bottom:6px;">預測黑名單</div>
+                        color:#B0A898;margin-bottom:6px;">標記為風險</div>
             <div style="font-size:30px;font-weight:800;color:#B06858;
                         letter-spacing:-1px;">{s['blacklist']:,}</div>
-            <div style="font-size:11px;color:#B0A898;margin-top:3px;">共 {s['total']:,} 位用戶</div>
+            <div style="font-size:11px;color:#B0A898;margin-top:3px;">涵蓋全部 {s['total']:,} 位用戶</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -573,7 +573,7 @@ if page == "總覽儀表板":
     col_cm, col_fold = st.columns([2, 3])
 
     with col_cm:
-        _section("CONFUSION MATRIX — OOF 5-FOLD")
+        _section("預測結果矩陣")
         N_POS = 1640
         tp = int(m["recall"] * N_POS)
         fp = int(tp / m["precision"] - tp) if m["precision"] > 0 else 0
@@ -595,7 +595,7 @@ if page == "總覽儀表板":
         st.plotly_chart(cm_fig, use_container_width=True)
 
     with col_fold:
-        _section("5-FOLD CROSS VALIDATION RESULTS")
+        _section("5 折交叉驗證表現")
         fold_fig = go.Figure()
         xs = [f"Fold {f['fold']}" for f in folds]
         fold_fig.add_trace(go.Bar(name="Precision", x=xs,
@@ -620,7 +620,7 @@ if page == "總覽儀表板":
     _divider()
 
     # ── 系統四大模組（雜誌感，不等寬欄）────────────────────────────────────
-    _section("SYSTEM ARCHITECTURE — 四大核心模組")
+    _section("系統架構 — 四大核心模組")
     modules = [
         ("database",       "數據擷取 & 自動化建倉", "#EBF0F4", "#6A8EBA",
          "BitoPro API · Checkpoint · Parquet → S3 · Glue Crawler 自動建表"),
@@ -652,19 +652,19 @@ if page == "總覽儀表板":
 # ══════════════════════════════════════════════════════════════════════════════
 # 頁面 2：用戶風險查詢
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "用戶風險查詢":
-    st.markdown('<div class="page-title">用戶風險查詢</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">依 User ID 查詢模型預測機率與風險等級</div>', unsafe_allow_html=True)
+elif page == "風險查詢":
+    st.markdown('<div class="page-title">帳號風險查詢</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">輸入帳號 ID，即時查看風險評分與詳細分析</div>', unsafe_allow_html=True)
 
     if sub_df is None:
-        _warn("submission_with_prob.csv 未載入，部分功能受限。")
+        _warn("部分資料尚未載入，風險查詢功能可能受限。")
 
     col_search, col_btn = st.columns([4, 1])
     with col_search:
-        uid_input = st.text_input("用戶 ID", placeholder="輸入 User ID，例如：967903",
+        uid_input = st.text_input("帳號 ID", placeholder="請輸入帳號 ID，例如 967903",
                                    label_visibility="collapsed")
     with col_btn:
-        search_btn = st.button("搜尋")
+        search_btn = st.button("開始查詢")
 
     _divider()
 
@@ -673,7 +673,7 @@ elif page == "用戶風險查詢":
             uid = int(uid_input.strip())
             row = sub_df[sub_df["user_id"] == uid]
             if row.empty:
-                _warn(f"找不到 user_id = {uid}，請確認 ID 是否正確。")
+                _warn(f"找不到 ID 為 {uid} 的帳號，請確認後再試。")
             else:
                 row = row.iloc[0]
                 prob = row.get("probability", 0.5) if "probability" in row.index else 0.5
@@ -681,13 +681,13 @@ elif page == "用戶風險查詢":
                 thr = m["threshold"]
 
                 if prob >= 0.5:
-                    risk_level, risk_color, risk_bg = "CRITICAL · 極高風險", "#B06050", "#F8EDEB"
+                    risk_level, risk_color, risk_bg = "極高風險 · 建議立即審查", "#B06050", "#F8EDEB"
                 elif prob >= thr:
-                    risk_level, risk_color, risk_bg = "HIGH · 高風險（黑名單預測）", "#A88040", "#F5F0E4"
+                    risk_level, risk_color, risk_bg = "高風險 · 列入觀察", "#A88040", "#F5F0E4"
                 elif prob >= thr * 0.5:
-                    risk_level, risk_color, risk_bg = "MEDIUM · 中等風險", "#908050", "#F4F2E4"
+                    risk_level, risk_color, risk_bg = "中等風險 · 持續監控", "#908050", "#F4F2E4"
                 else:
-                    risk_level, risk_color, risk_bg = "LOW · 低風險（正常）", "#5A8A6A", "#EAF2EE"
+                    risk_level, risk_color, risk_bg = "低風險 · 行為正常", "#5A8A6A", "#EAF2EE"
 
                 # 不對稱：大機率（2份）+ 細節表格（3份）
                 col_prob, col_detail = st.columns([2, 3])
@@ -772,63 +772,63 @@ elif page == "用戶風險查詢":
 
                 # 風險評估書下載
                 risk_label_text = {
-                    "CRITICAL · 極高風險":       "CRITICAL",
-                    "HIGH · 高風險（黑名單預測）": "HIGH",
-                    "MEDIUM · 中等風險":          "MEDIUM",
-                    "LOW · 低風險（正常）":        "LOW",
+                    "極高風險 · 建議立即審查": "CRITICAL",
+                    "高風險 · 列入觀察":       "HIGH",
+                    "中等風險 · 持續監控":     "MEDIUM",
+                    "低風險 · 行為正常":       "LOW",
                 }.get(risk_level, "UNKNOWN")
 
                 report_lines = [
                     "=" * 52,
-                    "   BitoGuard AML — 用戶風險評估書",
+                    "   BitoGuard AML — 帳號風險評估報告",
                     "=" * 52,
                     f"生成時間     : {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
                     f"模型版本     : LightGBM (OOF AUC={m['auc']:.4f})",
                     "-" * 52,
-                    f"用戶 ID      : {uid}",
+                    f"帳號 ID      : {uid}",
                     f"風險等級     : {risk_label_text}",
-                    f"黑名單機率   : {prob*100:.1f}%",
+                    f"風險機率     : {prob*100:.1f}%",
                     f"決策門檻     : {thr:.2f}",
-                    f"最終判定     : {'黑名單 (status=1)' if status == 1 else '正常 (status=0)'}",
+                    f"最終判定     : {'風險帳號 (status=1)' if status == 1 else '正常帳號 (status=0)'}",
                     "-" * 52,
                     "風險說明：",
                 ]
                 explanations = {
                     "CRITICAL": [
-                        "  * 黑名單機率超過 50%，極高度懷疑為洗錢車手帳號",
-                        "  * 建議立即凍結帳號並啟動人工審查",
-                        "  * 應依 AML 法規向主管機關申報可疑交易",
+                        "  * 風險機率超過 50%，高度懷疑為異常帳號",
+                        "  * 建議立即啟動人工審查，必要時凍結帳號",
+                        "  * 請依 AML 法規評估是否向主管機關申報",
                     ],
                     "HIGH": [
-                        "  * 黑名單機率超過決策門檻，模型判定為黑名單",
-                        "  * 建議限制提款功能並啟動 KYC 複查",
-                        "  * 追蹤近 30 天交易行為，評估資金流向",
+                        "  * 風險機率已超過決策門檻，模型判定為異常",
+                        "  * 建議加強 KYC 驗證，並考慮限制出金功能",
+                        "  * 請追蹤近 30 天的交易行為，評估資金流向",
                     ],
                     "MEDIUM": [
-                        "  * 黑名單機率介於門檻 50%~100% 之間，屬觀察名單",
-                        "  * 建議加強監控，每週產出行為報告",
-                        "  * 暫不限制功能，但列入高頻監控名單",
+                        "  * 風險機率落在觀察區間，需持續關注",
+                        "  * 建議加強監控頻率，定期產出行為報告",
+                        "  * 目前不限制功能，但已列入加強監控名單",
                     ],
                     "LOW": [
-                        "  * 黑名單機率低於門檻，判定為正常用戶",
-                        "  * 維持常規監控頻率",
+                        "  * 風險機率低於門檻，帳號行為目前正常",
+                        "  * 維持常規監控即可，無需特別處理",
                     ],
                 }
                 report_lines += explanations.get(risk_label_text, ["  * 無額外說明"])
                 report_lines += [
                     "-" * 52,
-                    "模型依據特徵（前 5 項重要度）：",
-                    "  1. blacklist_neighbor_count — 黑名單鄰居數",
+                    "主要影響特徵（前 5 項）：",
+                    "  1. blacklist_neighbor_count — 風險鄰居數",
                     "  2. min_retention_minutes   — 最短資金停留時間",
                     "  3. total_twd_volume        — 總台幣交易量",
                     "  4. twd_withdraw_count      — 台幣出金次數",
                     "  5. night_tx_ratio          — 深夜交易比例",
                     "=" * 52,
-                    "本報告由 BitoGuard AML 系統自動生成，僅供內部參考。",
+                    "本報告由 BitoGuard AML 系統自動生成，最終決策請以人工審核為準。",
                     "=" * 52,
                 ]
                 st.download_button(
-                    label="下載風險評估書 (.txt)",
+                    label="下載完整評估報告",
                     data="\n".join(report_lines).encode("utf-8"),
                     file_name=f"risk_report_user_{uid}.txt",
                     mime="text/plain",
@@ -840,14 +840,14 @@ elif page == "用戶風險查詢":
                 if feat_df is not None and "user_id" in feat_df.columns:
                     user_feat = feat_df[feat_df["user_id"] == uid]
                     if not user_feat.empty:
-                        _section("USER FEATURE DETAIL")
+                        _section("帳號特徵明細")
                         feat_cols = [c for c in report["features"] if c in user_feat.columns]
                         display_df = user_feat[feat_cols].T.reset_index()
                         display_df.columns = ["特徵名稱", "數值"]
                         st.dataframe(display_df, use_container_width=True, height=400)
 
         except ValueError:
-            _err("請輸入有效的數字 user_id")
+            _err("請輸入有效的帳號 ID（純數字）")
 
     # ── 風險排行（不對稱 3:2）────────────────────────────────────────────────
     _divider()
@@ -856,7 +856,7 @@ elif page == "用戶風險查詢":
         col_hi, col_lo = st.columns([3, 2])
 
         with col_hi:
-            _section("HIGH RISK — 高風險用戶排行（前 50）")
+            _section("風險最高的 50 個帳號")
             top50 = sub_df.nlargest(50, "probability")[["user_id", "probability", "status"]].copy()
             top50["probability"] = (top50["probability"] * 100).round(1)
             top50["風險等級"] = top50["probability"].apply(
@@ -868,7 +868,7 @@ elif page == "用戶風險查詢":
             )
 
         with col_lo:
-            _section("LOW RISK — 低風險用戶（後 50）")
+            _section("風險最低的 50 個帳號")
             bot50 = sub_df.nsmallest(50, "probability")[["user_id", "probability", "status"]].copy()
             bot50["probability"] = (bot50["probability"] * 100).round(1)
             bot50["風險等級"] = "LOW"
@@ -878,21 +878,21 @@ elif page == "用戶風險查詢":
                 use_container_width=True, height=400,
             )
     else:
-        _info("需要 submission_with_prob.csv 才能顯示用戶風險排行列表。")
+        _info("載入預測資料後，即可查看風險排行列表。")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 頁面 3：模型評估
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "模型評估":
-    st.markdown('<div class="page-title">模型評估詳情</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">LightGBM · Feature Importance · Threshold Analysis · Probability Distribution</div>', unsafe_allow_html=True)
+elif page == "模型表現":
+    st.markdown('<div class="page-title">模型評估</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">深入了解模型的預測邏輯與各項表現指標</div>', unsafe_allow_html=True)
 
     # 不對稱：特徵重要度（3份）+ 右側欄位（4份）
     col_l, col_r = st.columns([3, 4])
 
     with col_l:
-        _section("FEATURE IMPORTANCE — LightGBM Gain")
+        _section("最具影響力的特徵")
         if fi_df is not None:
             df = fi_df.head(20)
         else:
@@ -920,7 +920,7 @@ elif page == "模型評估":
         st.plotly_chart(fi_fig, use_container_width=True)
 
     with col_r:
-        _section("THRESHOLD ANALYSIS")
+        _section("決策門檻分析")
         if oof_df is not None:
             from sklearn.metrics import f1_score, precision_score, recall_score
             y_t = oof_df["true_label"].values
@@ -952,7 +952,7 @@ elif page == "模型評估":
                               **_CL)
         st.plotly_chart(thr_fig, use_container_width=True)
 
-        _section("FOLD METRICS TABLE")
+        _section("各折驗證結果")
         fold_table = pd.DataFrame(folds)
         fold_table.columns = ["Fold", "門檻", "Precision", "Recall", "F1", "AUC", "正類數"]
         for col in ["Precision", "Recall", "F1", "AUC"]:
@@ -968,7 +968,7 @@ elif page == "模型評估":
 
     # 全寬機率分布
     _divider()
-    _section("PREDICTION PROBABILITY DISTRIBUTION")
+    _section("預測機率分布")
     if sub_df is not None and "probability" in sub_df.columns:
         dist_fig = px.histogram(
             sub_df, x="probability", color="status",
@@ -983,15 +983,15 @@ elif page == "模型評估":
         dist_fig.update_layout(height=280, margin=dict(l=0, r=0, t=10, b=0), **_CL)
         st.plotly_chart(dist_fig, use_container_width=True)
     else:
-        _info("需要 submission_with_prob.csv 才能顯示機率分布圖。")
+        _info("載入預測資料後，即可查看機率分布圖。")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 頁面 4：提交結果
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "提交結果":
-    st.markdown('<div class="page-title">提交結果</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-subtitle">submission.csv · 競賽最終提交預覽</div>', unsafe_allow_html=True)
+elif page == "預測結果":
+    st.markdown('<div class="page-title">預測結果</div>', unsafe_allow_html=True)
+    st.markdown('<div class="page-subtitle">模型對所有帳號的最終風險判定</div>', unsafe_allow_html=True)
 
     if sub_df is None:
         n_total = s["total"]
@@ -1013,9 +1013,9 @@ elif page == "提交結果":
             <div class="kpi-sub">{sub_value}</div>
         </div>""", unsafe_allow_html=True)
 
-    _stat_card(sc1, "TOTAL USERS",  f"{n_total:,}", "預測目標用戶總數",          "#7A7870")
-    _stat_card(sc2, "BLACKLIST",    f"{n_black:,}", f"佔比 {n_black/n_total*100:.2f}%", "#B06858")
-    _stat_card(sc3, "NORMAL",       f"{n_norm:,}",  f"佔比 {n_norm/n_total*100:.2f}%",  "#5A8A6A")
+    _stat_card(sc1, "TOTAL USERS",  f"{n_total:,}", "涵蓋的帳號總數",                   "#7A7870")
+    _stat_card(sc2, "RISK",         f"{n_black:,}", f"標記為風險 · 佔比 {n_black/n_total*100:.2f}%", "#B06858")
+    _stat_card(sc3, "NORMAL",       f"{n_norm:,}",  f"判定正常 · 佔比 {n_norm/n_total*100:.2f}%",    "#5A8A6A")
 
     _divider()
 
@@ -1023,7 +1023,7 @@ elif page == "提交結果":
     col_pie, col_table = st.columns([2, 5])
 
     with col_pie:
-        _section("DISTRIBUTION")
+        _section("風險分布")
         pie_fig = px.pie(
             values=[n_black, n_norm],
             names=["黑名單", "正常"],
@@ -1037,10 +1037,10 @@ elif page == "提交結果":
         st.plotly_chart(pie_fig, use_container_width=True)
 
     with col_table:
-        _section("DATA PREVIEW — submission.csv")
+        _section("預測結果預覽")
         ctrl1, ctrl2 = st.columns([3, 2])
         with ctrl1:
-            filter_opt = st.selectbox("篩選", ["全部", "只看黑名單", "只看正常"],
+            filter_opt = st.selectbox("篩選", ["全部帳號", "只看風險帳號", "只看正常帳號"],
                                       label_visibility="collapsed")
         with ctrl2:
             show_prob = st.checkbox("顯示機率欄", value=True)
@@ -1051,19 +1051,19 @@ elif page == "提交結果":
                 display_cols.append("probability")
 
             df_show = sub_df[display_cols].copy()
-            if filter_opt == "只看黑名單":
+            if filter_opt == "只看風險帳號":
                 df_show = df_show[df_show["status"] == 1]
-            elif filter_opt == "只看正常":
+            elif filter_opt == "只看正常帳號":
                 df_show = df_show[df_show["status"] == 0]
 
             st.dataframe(df_show, use_container_width=True, height=360)
 
             sub_csv = sub_df[["user_id", "status"]].to_csv(index=False).encode("utf-8")
             st.download_button(
-                label="下載 submission.csv（競賽用）",
+                label="下載預測結果（.csv）",
                 data=sub_csv,
                 file_name="submission.csv",
                 mime="text/csv",
             )
         else:
-            _info("submission_with_prob.csv 未載入，無法顯示資料預覽。")
+            _info("預測資料尚未載入，無法顯示資料預覽。")
