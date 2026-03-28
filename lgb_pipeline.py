@@ -18,7 +18,8 @@ import numpy as np
 import pandas as pd
 import lightgbm as lgb
 from sklearn.metrics import (
-    f1_score, precision_score, recall_score, roc_auc_score, confusion_matrix
+    f1_score, precision_score, recall_score, roc_auc_score, confusion_matrix,
+    accuracy_score
 )
 from sklearn.model_selection import StratifiedKFold
 
@@ -313,8 +314,8 @@ FEATS = [
     "tx_per_day", "total_volume", "swap_to_twd_ratio",
 ]
 
-# ── LightGBM 超參數（針對極度不平衡資料集優化）────────────────────────────────
-LGB_PARAMS = dict(
+# ── LightGBM 基礎超參數 ───────────────────────────────────────────────────────
+LGB_BASE_PARAMS = dict(
     objective="binary",
     metric="auc",
     num_leaves=63,
@@ -322,13 +323,35 @@ LGB_PARAMS = dict(
     feature_fraction=0.8,
     bagging_fraction=0.8,
     bagging_freq=5,
-    min_child_samples=10,     # 從 20 降到 10，更能學習稀有類別
-    is_unbalance=True,        # 自動處理類別不平衡
+    min_child_samples=10,
     seed=42,
     verbosity=-1,
     n_jobs=-1,
 )
-NUM_ROUNDS = 1000             # 從 500 增加到 1000，配合 early stopping
+NUM_ROUNDS = 1000
+
+# scale_pos_weight 候選值（neg/pos ≈ 30；從保守到積極掃描）
+SPW_GRID = [1, 3, 5, 10, 20, 30]
+
+# 複合評分權重（AUC 排序能力 + F1 綜合 + 準確度）
+W_AUC, W_F1, W_ACC = 0.40, 0.35, 0.25
+
+
+def composite_score(auc: float, f1: float, acc: float) -> float:
+    return W_AUC * auc + W_F1 * f1 + W_ACC * acc
+
+
+def best_threshold_composite(y_true, y_prob, auc: float):
+    """找讓複合分數最高的閾值。"""
+    best_t, best_score = 0.5, -1.0
+    for t in np.arange(0.05, 0.95, 0.01):
+        pred = (y_prob >= t).astype(int)
+        f1  = f1_score(y_true, pred, zero_division=0)
+        acc = accuracy_score(y_true, pred)
+        s   = composite_score(auc, f1, acc)
+        if s > best_score:
+            best_score, best_t = s, t
+    return best_t, best_score
 
 
 # ── 主流程 ────────────────────────────────────────────────────────────────────
@@ -367,8 +390,40 @@ def main():
     print(f"\n訓練特徵矩陣: {X.shape}  |  預測集: {X_pred.shape}")
     print(f"正類比率: {y.mean():.4f}  ({y.sum()}/{len(y)})")
 
-    # ── 5-Fold 交叉驗證 ───────────────────────────────────────────────────────
-    print("\n[Stage 2] 5-Fold StratifiedKFold 交叉驗證...")
+    # ── Stage 2a：scale_pos_weight 網格搜尋（3-Fold 快速估計）────────────────
+    print("\n[Stage 2a] scale_pos_weight 網格搜尋...")
+    skf3 = StratifiedKFold(n_splits=3, shuffle=True, random_state=42)
+    spw_results = {}
+    for spw in SPW_GRID:
+        params = {**LGB_BASE_PARAMS, "scale_pos_weight": spw}
+        oof_tmp = np.zeros(len(y), dtype=np.float32)
+        for tr_idx, val_idx in skf3.split(X, y):
+            X_tr, X_val = X[tr_idx], X[val_idx]
+            y_tr, y_val = y[tr_idx], y[val_idx]
+            dtrain = lgb.Dataset(X_tr, label=y_tr, feature_name=FEATS)
+            dval   = lgb.Dataset(X_val, label=y_val, feature_name=FEATS, reference=dtrain)
+            m = lgb.train(params, dtrain, num_boost_round=NUM_ROUNDS,
+                          valid_sets=[dval],
+                          callbacks=[lgb.log_evaluation(period=-1),
+                                     lgb.early_stopping(50, verbose=False)])
+            oof_tmp[val_idx] = m.predict(X_val)
+        auc_tmp = roc_auc_score(y, oof_tmp)
+        best_t_tmp, comp_tmp = best_threshold_composite(y, oof_tmp, auc_tmp)
+        pred_tmp  = (oof_tmp >= best_t_tmp).astype(int)
+        f1_tmp    = f1_score(y, pred_tmp, zero_division=0)
+        acc_tmp   = accuracy_score(y, pred_tmp)
+        spw_results[spw] = {"composite": comp_tmp, "auc": auc_tmp,
+                             "f1": f1_tmp, "acc": acc_tmp, "thr": best_t_tmp}
+        print(f"  SPW={spw:>2}  composite={comp_tmp:.4f}  AUC={auc_tmp:.4f}"
+              f"  F1={f1_tmp:.4f}  Acc={acc_tmp:.4f}  thr={best_t_tmp:.2f}")
+
+    best_spw = max(spw_results, key=lambda k: spw_results[k]["composite"])
+    print(f"\n  >>> 最佳 scale_pos_weight = {best_spw} "
+          f"(composite={spw_results[best_spw]['composite']:.4f})")
+    LGB_PARAMS = {**LGB_BASE_PARAMS, "scale_pos_weight": best_spw}
+
+    # ── Stage 2b：5-Fold 完整交叉驗證（使用最佳 SPW）────────────────────────
+    print("\n[Stage 2b] 5-Fold StratifiedKFold 交叉驗證...")
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     oof_probs = np.zeros(len(y), dtype=np.float32)
     test_probs = np.zeros(len(X_pred), dtype=np.float32)
@@ -398,17 +453,15 @@ def main():
         oof_probs[val_idx] = val_prob
         test_probs += test_prob / 5
 
-        # 找最佳 threshold
-        best_t, best_f1 = 0.5, 0.0
-        for t in np.arange(0.03, 0.85, 0.01):
-            f = f1_score(y_val, (val_prob >= t).astype(int), zero_division=0)
-            if f > best_f1:
-                best_f1, best_t = f, t
+        # 找複合分數最佳閾值
+        auc  = roc_auc_score(y_val, val_prob)
+        best_t, _ = best_threshold_composite(y_val, val_prob, auc)
 
         val_pred = (val_prob >= best_t).astype(int)
+        best_f1  = f1_score(y_val, val_pred, zero_division=0)
         prec = precision_score(y_val, val_pred, zero_division=0)
         rec  = recall_score(y_val, val_pred, zero_division=0)
-        auc  = roc_auc_score(y_val, val_prob)
+        acc  = accuracy_score(y_val, val_pred)
 
         fold_results.append({
             "fold": fold,
@@ -417,6 +470,7 @@ def main():
             "recall":    round(float(rec), 4),
             "f1":        round(float(best_f1), 4),
             "auc":       round(float(auc), 4),
+            "accuracy":  round(float(acc), 4),
             "val_pos":   int(y_val.sum()),
         })
         # 保存最後一折的特徵重要度
@@ -427,31 +481,31 @@ def main():
             }).sort_values("importance", ascending=False)
             fi.to_csv(OUT_DIR / "feature_importance.csv", index=False)
         print(f"  Fold {fold}: AUC={auc:.4f}  F1={best_f1:.4f}  "
-              f"P={prec:.4f}  R={rec:.4f}  thr={best_t:.2f}")
+              f"P={prec:.4f}  R={rec:.4f}  Acc={acc:.4f}  thr={best_t:.2f}")
 
     # ── OOF 整體評估 ─────────────────────────────────────────────────────────
     print("\n[Stage 3] OOF 全局評估...")
-    best_t, best_f1 = 0.5, 0.0
-    for t in np.arange(0.03, 0.85, 0.01):
-        f = f1_score(y, (oof_probs >= t).astype(int), zero_division=0)
-        if f > best_f1:
-            best_f1, best_t = f, t
+    oof_auc  = roc_auc_score(y, oof_probs)
+    best_t, best_comp = best_threshold_composite(y, oof_probs, oof_auc)
 
     oof_pred = (oof_probs >= best_t).astype(int)
+    best_f1  = f1_score(y, oof_pred, zero_division=0)
     oof_prec = precision_score(y, oof_pred, zero_division=0)
     oof_rec  = recall_score(y, oof_pred, zero_division=0)
-    oof_auc  = roc_auc_score(y, oof_probs)
-    oof_acc  = (oof_pred == y).mean()
+    oof_acc  = accuracy_score(y, oof_pred)
     tn, fp, fn, tp = confusion_matrix(y, oof_pred, labels=[0, 1]).ravel()
 
     print("\n" + "=" * 60)
     print("  ★ 判斷成功率 (OOF 驗證集表現) ★")
     print("=" * 60)
-    print(f"  AUC      : {oof_auc:.4f}  → 排序能力")
-    print(f"  F1-Score : {best_f1:.4f}  → 綜合指標")
-    print(f"  Precision: {oof_prec:.4f}  → 預測黑名單中 {oof_prec*100:.1f}% 真的是黑名單")
-    print(f"  Recall   : {oof_rec:.4f}  → 實際黑名單抓到 {oof_rec*100:.1f}%")
-    print(f"  Threshold: {best_t:.2f}")
+    print(f"  AUC       : {oof_auc:.4f}  → 排序能力")
+    print(f"  F1-Score  : {best_f1:.4f}  → 綜合指標")
+    print(f"  Precision : {oof_prec:.4f}  → 預測黑名單中 {oof_prec*100:.1f}% 真的是黑名單")
+    print(f"  Recall    : {oof_rec:.4f}  → 實際黑名單抓到 {oof_rec*100:.1f}%")
+    print(f"  Accuracy  : {oof_acc:.4f}")
+    print(f"  Composite : {best_comp:.4f}  (0.4×AUC + 0.35×F1 + 0.25×Acc)")
+    print(f"  Threshold : {best_t:.2f}  (複合分數最佳)")
+    print(f"  SPW used  : {best_spw}")
     print(f"\n  混淆矩陣:")
     print(f"    TP={tp:,}  FP={fp:,}")
     print(f"    FN={fn:,}  TN={tn:,}")
@@ -493,7 +547,10 @@ def main():
             "recall":    round(float(oof_rec), 4),
             "threshold": round(float(best_t), 2),
             "accuracy":  round(float(oof_acc), 4),
+            "composite": round(float(best_comp), 4),
         },
+        "best_spw": best_spw,
+        "spw_search": {str(k): v for k, v in spw_results.items()},
         "submission": {
             "total": int(len(submission)),
             "blacklist": int(n_black),
