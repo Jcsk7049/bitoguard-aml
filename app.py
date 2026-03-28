@@ -112,53 +112,9 @@ html, body, [class*="css"], * {
     display: none !important;
 }
 
-/* ── 側邊欄收合按鈕（完全重構，不依賴 Material Icons）──────────────── */
-
-/* 展開狀態容器：側邊欄內左上角 */
-[data-testid="stSidebarCollapseButton"] {
-    z-index: 999999 !important;
-    pointer-events: auto !important;
-    position: relative !important;
-    font-size: 0 !important;
-    background: transparent !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-/* 收納狀態容器：完全隱藏，改用自訂懸浮按鈕取代 */
-[data-testid="collapsedControl"] {
-    opacity: 0 !important;
-    pointer-events: none !important;
-    position: fixed !important;
-    top: 15px !important;
-    left: 0px !important;
-    width: 1px !important;
-    height: 1px !important;
-    overflow: hidden !important;
-    z-index: -1 !important;
-}
-
-/* 容器 hover */
-[data-testid="stSidebarCollapseButton"]:hover,
-[data-testid="collapsedControl"]:hover {
-    background-color: rgba(142,115,91,0.12) !important;
-    border-radius: 50% !important;
-}
-
-/* 容器偽元素清空 */
-[data-testid="stSidebarCollapseButton"]::before,
-[data-testid="stSidebarCollapseButton"]::after,
-[data-testid="collapsedControl"]::before,
-[data-testid="collapsedControl"]::after {
-    content: none !important;
-    display: none !important;
-}
-
-/* button 本體：all:unset + 36×36 圓形 */
-[data-testid="stSidebarCollapseButton"] button,
-[data-testid="collapsedControl"] button {
+/* ── 側邊欄收合按鈕（〈）──────────────────────────────────────────── */
+[data-testid="stSidebarCollapseButton"] button {
     all: unset !important;
-    font-size: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -166,103 +122,64 @@ html, body, [class*="css"], * {
     height: 36px !important;
     border-radius: 50% !important;
     cursor: pointer !important;
-    pointer-events: auto !important;
-    z-index: 999999 !important;
-    position: relative !important;
-    background: transparent !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    transition: background-color 0.2s !important;
 }
-[data-testid="stSidebarCollapseButton"] button:hover,
-[data-testid="collapsedControl"] button:hover {
+[data-testid="stSidebarCollapseButton"] button:hover {
     background-color: rgba(142,115,91,0.12) !important;
 }
-
-/* span + svg：全部捨棄，改用 ::before */
 [data-testid="stSidebarCollapseButton"] span,
-[data-testid="stSidebarCollapseButton"] svg,
-[data-testid="collapsedControl"] span,
-[data-testid="collapsedControl"] svg {
-    display: none !important;
-    visibility: hidden !important;
-}
-
-/* ::before：手繪〈〉圖示，這是唯一可見的內容 */
+[data-testid="stSidebarCollapseButton"] svg { display: none !important; }
 [data-testid="stSidebarCollapseButton"] button::before {
     content: '〈' !important;
     font-size: 22px !important;
     color: #8E735B !important;
-    visibility: visible !important;
-    display: block !important;
     font-weight: bold !important;
-    line-height: 1 !important;
     font-family: sans-serif !important;
-}
-[data-testid="collapsedControl"] button::before {
-    content: '〉' !important;
-    font-size: 24px !important;
-    color: #8E735B !important;
-    font-weight: bold !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    line-height: 1 !important;
-    font-family: sans-serif !important;
-    z-index: 99999999 !important;
-    position: relative !important;
-}
-[data-testid="stSidebarCollapseButton"] button::after,
-[data-testid="collapsedControl"] button::after {
-    content: none !important;
-    display: none !important;
 }
 
-/* ── 完全隱藏 stHeader，防止透明層攔截點擊 ──────────────────────────── */
+/* ── stHeader：高度壓縮為 0，不用 display:none，讓 collapsedControl 可逃脫 ── */
 [data-testid="stHeader"] {
-    display: none !important;
-    visibility: hidden !important;
+    height: 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
 }
 
-/* ── 原生〉開啟按鈕：固定左上角（#sidebar-open-wrap 包裹）────────────── */
-#sidebar-open-wrap {
+/* ── 側邊欄展開按鈕（〉）：position:fixed 逃出 stHeader，固定左上角 ── */
+[data-testid="collapsedControl"] {
     position: fixed !important;
     top: 12px !important;
     left: 0 !important;
-    z-index: 99999999 !important;
-    pointer-events: auto !important;
-}
-#sidebar-open-wrap .stButton,
-#sidebar-open-wrap .stButton > button {
-    position: static !important;
+    z-index: 9999999 !important;
     width: 42px !important;
     height: 42px !important;
-    min-height: unset !important;
-    padding: 0 !important;
-    background-color: #FFFFFF !important;
-    color: #8E735B !important;
-    border: 1.5px solid #8E735B !important;
-    border-radius: 0 8px 8px 0 !important;
+    overflow: visible !important;
+}
+[data-testid="collapsedControl"] button {
+    all: unset !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
-    font-size: 20px !important;
-    font-weight: bold !important;
-    line-height: 1 !important;
+    width: 42px !important;
+    height: 42px !important;
+    background: #FFFFFF !important;
+    border: 1.5px solid #8E735B !important;
+    border-radius: 0 8px 8px 0 !important;
     cursor: pointer !important;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1) !important;
 }
-#sidebar-open-wrap .stButton > button:hover {
-    background-color: #F5F2EE !important;
-    border-color: #7A6148 !important;
-    box-shadow: 3px 0 12px rgba(0,0,0,0.15) !important;
+[data-testid="collapsedControl"] button:hover {
+    background: #F5F2EE !important;
 }
-#sidebar-open-wrap .stButton > button * {
-    color: #8E735B !important;
+[data-testid="collapsedControl"] span,
+[data-testid="collapsedControl"] svg { display: none !important; }
+[data-testid="collapsedControl"] button::before {
+    content: '〉' !important;
     font-size: 20px !important;
+    color: #8E735B !important;
     font-weight: bold !important;
+    font-family: sans-serif !important;
 }
 
 [data-testid="stSidebar"] > div:first-child {
@@ -708,45 +625,19 @@ components.html("""
     }
 
     function injectCSS() {
+        /* 靜態 st.markdown CSS 已處理 stHeader / collapsedControl / stSidebarCollapseButton。
+           這裡只補 ::before 內容（Streamlit rerun 後 style 標籤可能被移除，需重注入）。*/
         var old = doc.getElementById('_bito_fix');
         if (old) old.remove();
         var s = doc.createElement('style');
         s.id = '_bito_fix';
         s.textContent =
-            /* ── 側邊欄收納按鈕（〈）── */
-            '[data-testid="stSidebarCollapseButton"]{font-size:0!important;z-index:999999!important;}' +
-            '[data-testid="stSidebarCollapseButton"] button{all:unset!important;display:flex!important;' +
-            'align-items:center!important;justify-content:center!important;' +
-            'width:36px!important;height:36px!important;border-radius:50%!important;' +
-            'cursor:pointer!important;background:transparent!important;visibility:visible!important;opacity:1!important;}' +
-            '[data-testid="stSidebarCollapseButton"] button:hover{background-color:rgba(142,115,91,.12)!important;}' +
-            '[data-testid="stSidebarCollapseButton"] span,' +
-            '[data-testid="stSidebarCollapseButton"] svg{display:none!important;visibility:hidden!important;}' +
-            '[data-testid="stSidebarCollapseButton"] button::before{content:"\\3008"!important;' +
-            'font-size:22px!important;font-weight:bold!important;color:#8E735B!important;' +
-            'visibility:visible!important;display:block!important;font-family:sans-serif!important;}' +
-            '[data-testid="stSidebarCollapseButton"] button::after{content:none!important;display:none!important;}' +
-            /* ── Header：visibility:hidden（非 display:none），子元素可覆蓋 ── */
-            '[data-testid="stHeader"]{background:transparent!important;box-shadow:none!important;' +
-            'border:none!important;}' +
-            '[data-testid="stHeader"] *{visibility:hidden!important;pointer-events:none!important;}' +
-            /* ── collapsedControl：從 header 內「浮出」，改造為〉按鈕 ── */
-            '[data-testid="collapsedControl"],' +
-            '[data-testid="collapsedControl"] *{visibility:visible!important;pointer-events:auto!important;}' +
-            '[data-testid="collapsedControl"]{' +
-            'position:fixed!important;top:12px!important;left:0!important;' +
-            'z-index:9999999!important;width:42px!important;height:42px!important;font-size:0!important;}' +
-            '[data-testid="collapsedControl"] button{all:unset!important;display:flex!important;' +
-            'align-items:center!important;justify-content:center!important;' +
-            'width:42px!important;height:42px!important;' +
-            'background:#FFFFFF!important;border:1.5px solid #8E735B!important;' +
-            'border-radius:0 8px 8px 0!important;cursor:pointer!important;' +
-            'box-shadow:2px 0 10px rgba(0,0,0,.1)!important;}' +
-            '[data-testid="collapsedControl"] span,' +
-            '[data-testid="collapsedControl"] svg{visibility:hidden!important;display:none!important;}' +
-            '[data-testid="collapsedControl"] button::before{content:"\\3009"!important;' +
-            'font-size:20px!important;font-weight:bold!important;color:#8E735B!important;' +
-            'font-family:sans-serif!important;display:block!important;visibility:visible!important;}';
+            '[data-testid="stSidebarCollapseButton"] button::before{' +
+            'content:"\\3008"!important;font-size:22px!important;' +
+            'font-weight:bold!important;color:#8E735B!important;font-family:sans-serif!important;}' +
+            '[data-testid="collapsedControl"] button::before{' +
+            'content:"\\3009"!important;font-size:20px!important;' +
+            'font-weight:bold!important;color:#8E735B!important;font-family:sans-serif!important;}';
         (doc.head || doc.documentElement).appendChild(s);
     }
 
