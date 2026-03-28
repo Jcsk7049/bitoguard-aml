@@ -114,16 +114,35 @@ html, body, [class*="css"], * {
 
 /* ── 側邊欄收合 / 展開 按鈕 ─────────────────────────────────────────── */
 
-/* 確保按鈕容器可點、z-index 最高；font-size:0 讓文字節點不佔空間 */
+/* 容器：透明背景，高 z-index，font-size:0 讓純文字節點不佔空間 */
 [data-testid="stSidebarCollapseButton"],
 [data-testid="collapsedControl"] {
     z-index: 99999 !important;
     pointer-events: auto !important;
     position: relative !important;
     font-size: 0 !important;
+    background: transparent !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
-/* 按鈕本體：all:unset 清除全域污染；font-size:0 確保文字節點不可見 */
+/* 容器 hover：圓形棕色半透明底 */
+[data-testid="stSidebarCollapseButton"]:hover,
+[data-testid="collapsedControl"]:hover {
+    background-color: rgba(142,115,91,0.1) !important;
+    border-radius: 50% !important;
+}
+
+/* 容器不得有偽元素遮擋 */
+[data-testid="stSidebarCollapseButton"]::before,
+[data-testid="stSidebarCollapseButton"]::after,
+[data-testid="collapsedControl"]::before,
+[data-testid="collapsedControl"]::after {
+    content: none !important;
+    display: none !important;
+}
+
+/* button 本體：all:unset 清除全域污染 */
 [data-testid="stSidebarCollapseButton"] button,
 [data-testid="collapsedControl"] button {
     all: unset !important;
@@ -133,68 +152,71 @@ html, body, [class*="css"], * {
     justify-content: center !important;
     width: 36px !important;
     height: 36px !important;
-    border-radius: 8px !important;
+    border-radius: 50% !important;
     cursor: pointer !important;
     pointer-events: auto !important;
     z-index: 99999 !important;
     position: relative !important;
     background: transparent !important;
-    transition: background 0.2s !important;
-    color: #8E735B !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transition: background-color 0.2s !important;
 }
 [data-testid="stSidebarCollapseButton"] button:hover,
 [data-testid="collapsedControl"] button:hover {
-    background: rgba(142,115,91,0.10) !important;
+    background-color: rgba(142,115,91,0.1) !important;
+    border-radius: 50% !important;
 }
-/* SVG 箭頭：棕色填滿，強制可見 */
+
+/* SVG 圖示：強制可見 + 棕色 */
 [data-testid="stSidebarCollapseButton"] button svg,
-[data-testid="collapsedControl"] button svg {
+[data-testid="collapsedControl"] button svg,
+[data-testid="stSidebarCollapseButton"] svg,
+[data-testid="collapsedControl"] svg {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
-    width: 20px !important;
-    height: 20px !important;
+    width: 24px !important;
+    height: 24px !important;
     stroke: #8E735B !important;
     fill: #8E735B !important;
     pointer-events: none !important;
+    z-index: 99999 !important;
 }
-/* 確保 SVG 內所有路徑也繼承棕色 */
 [data-testid="stSidebarCollapseButton"] button svg *,
-[data-testid="collapsedControl"] button svg * {
+[data-testid="collapsedControl"] button svg *,
+[data-testid="stSidebarCollapseButton"] svg *,
+[data-testid="collapsedControl"] svg * {
     stroke: #8E735B !important;
     fill: #8E735B !important;
     visibility: visible !important;
+    opacity: 1 !important;
 }
-/* 隱藏 button 內的 Material Icon span（字體不可用時顯示為明文）*/
-[data-testid="stSidebarCollapseButton"] button span,
-[data-testid="collapsedControl"] button span {
+
+/* span：精準抹除 Material Icon 殘留文字，不影響 svg */
+[data-testid="stSidebarCollapseButton"] span,
+[data-testid="collapsedControl"] span {
     font-size: 0 !important;
-    width: 0 !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    visibility: hidden !important;
-    display: inline-block !important;
+    color: transparent !important;
+    line-height: 0 !important;
+    display: none !important;
 }
-/* 移除 ::before 偽元素，避免遮擋圖示 */
+
+/* button 內 ::before ::after 不遮擋 */
 [data-testid="stSidebarCollapseButton"] button::before,
 [data-testid="stSidebarCollapseButton"] button::after,
 [data-testid="collapsedControl"] button::before,
 [data-testid="collapsedControl"] button::after {
     content: none !important;
     display: none !important;
-    visibility: hidden !important;
 }
+
 [data-testid="stSidebar"] > div:first-child {
     padding: 2rem 1.6rem 1.5rem !important;
 }
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] label {
     color: #6A6058 !important;
-}
-/* span 不全域著色，避免 Material Icon 文字被顯示 */
-[data-testid="stSidebar"] [data-testid] span,
-[data-testid="stSidebar"] .stButton span {
-    color: inherit !important;
 }
 
 /* ── 全域按鈕（白底棕框，輪廓清晰）────────────────────────────────── */
