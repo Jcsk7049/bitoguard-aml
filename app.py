@@ -146,15 +146,24 @@ html, body, [class*="css"], * {
 [data-testid="collapsedControl"] button:hover {
     background: rgba(142,115,91,0.10) !important;
 }
-/* SVG 箭頭：棕色 */
+/* SVG 箭頭：棕色填滿，強制可見 */
 [data-testid="stSidebarCollapseButton"] button svg,
 [data-testid="collapsedControl"] button svg {
     display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     width: 20px !important;
     height: 20px !important;
     stroke: #8E735B !important;
-    fill: none !important;
+    fill: #8E735B !important;
     pointer-events: none !important;
+}
+/* 確保 SVG 內所有路徑也繼承棕色 */
+[data-testid="stSidebarCollapseButton"] button svg *,
+[data-testid="collapsedControl"] button svg * {
+    stroke: #8E735B !important;
+    fill: #8E735B !important;
+    visibility: visible !important;
 }
 /* 隱藏 button 內的 Material Icon span（字體不可用時顯示為明文）*/
 [data-testid="stSidebarCollapseButton"] button span,
@@ -166,13 +175,14 @@ html, body, [class*="css"], * {
     visibility: hidden !important;
     display: inline-block !important;
 }
-/* 移除任何 content 屬性殘留 */
+/* 移除 ::before 偽元素，避免遮擋圖示 */
 [data-testid="stSidebarCollapseButton"] button::before,
 [data-testid="stSidebarCollapseButton"] button::after,
 [data-testid="collapsedControl"] button::before,
 [data-testid="collapsedControl"] button::after {
     content: none !important;
     display: none !important;
+    visibility: hidden !important;
 }
 [data-testid="stSidebar"] > div:first-child {
     padding: 2rem 1.6rem 1.5rem !important;
@@ -338,19 +348,23 @@ html, body, [class*="css"], * {
     display: none !important;
 }
 
-/* ── stSidebarNav ul/li/a（備用：某些 Streamlit 版本使用此結構）────── */
+/* ── stSidebarNav ul/li/a（完整 Pill 樣式重寫）──────────────────────── */
 [data-testid="stSidebarNav"] ul {
     list-style: none !important;
-    padding: 0 8px !important;
+    padding: 0 6px !important;
     margin: 0 !important;
+    width: 100% !important;
 }
 [data-testid="stSidebarNav"] li {
-    margin: 8px 12px !important;
+    margin: 8px 0 !important;
+    width: 100% !important;
 }
+/* 預設：透明背景，無邊框 */
 [data-testid="stSidebarNav"] li a,
 [data-testid="stSidebarNav"] li > div {
     display: flex !important;
     align-items: center !important;
+    width: 100% !important;
     border: none !important;
     border-radius: 20px !important;
     padding: 10px 14px !important;
@@ -359,21 +373,26 @@ html, body, [class*="css"], * {
     font-weight: 500 !important;
     text-decoration: none !important;
     background: transparent !important;
+    box-sizing: border-box !important;
     transition: background 0.15s !important;
 }
+/* Hover：棕色半透明底 */
 [data-testid="stSidebarNav"] li a:hover,
 [data-testid="stSidebarNav"] li > div:hover {
-    background: rgba(142,115,91,0.08) !important;
+    background-color: rgba(142,115,91,0.1) !important;
     color: #2C2218 !important;
 }
+/* Active / 選中：#EAE7E2 底 + Pill + 深棕文字 */
 [data-testid="stSidebarNav"] li[aria-selected="true"] a,
 [data-testid="stSidebarNav"] li[aria-selected="true"] > div,
 [data-testid="stSidebarNav"] li a[aria-current="page"],
-[data-testid="stSidebarNav"] li a.active {
+[data-testid="stSidebarNav"] li a.active,
+[data-testid="stSidebarNav"] li a[aria-current] {
     background: #EAE7E2 !important;
-    color: #2C2218 !important;
+    color: #5D5A54 !important;
     font-weight: 700 !important;
     border-radius: 20px !important;
+    border: none !important;
 }
 
 /* ── 收納按鈕 header kind（棕色圖示）───────────────────────────────── */
@@ -386,7 +405,9 @@ button[data-testid="baseButton-header"] {
 button[kind="header"] svg,
 button[data-testid="baseButton-header"] svg {
     stroke: #8E735B !important;
-    fill: none !important;
+    fill: #8E735B !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* ── Headings ───────────────────────────────────────────────────────── */
