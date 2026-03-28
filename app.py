@@ -725,8 +725,9 @@ components.html("""
             'font-size:22px!important;font-weight:bold!important;color:#8E735B!important;' +
             'visibility:visible!important;display:block!important;font-family:sans-serif!important;}' +
             '[data-testid="stSidebarCollapseButton"] button::after{content:none!important;display:none!important;}' +
+            /* collapsedControl 視覺隱藏但保留在 DOM 讓 JS dispatchEvent 能觸發 */
             '[data-testid="collapsedControl"]{opacity:0!important;pointer-events:none!important;' +
-            'position:fixed!important;width:1px!important;height:1px!important;overflow:hidden!important;z-index:-1!important;}' +
+            'position:fixed!important;top:-9999px!important;left:-9999px!important;}' +
             '[data-testid="stHeader"]{display:none!important;visibility:hidden!important;}';
         (doc.head || doc.documentElement).appendChild(s);
     }
@@ -745,8 +746,13 @@ components.html("""
             'font-family:sans-serif;cursor:pointer;z-index:9999999;' +
             'box-shadow:2px 0 10px rgba(0,0,0,.1);outline:none;';
         btn.addEventListener('click', function () {
-            var nb = doc.querySelector('[data-testid="collapsedControl"] button');
-            if (nb) nb.click();
+            /* 嘗試多個選擇器：有些 Streamlit 版本 collapsedControl 本身就是按鈕 */
+            var nb = doc.querySelector('[data-testid="collapsedControl"] button') ||
+                     doc.querySelector('[data-testid="collapsedControl"]');
+            if (nb) {
+                /* dispatchEvent 才能觸發 React 合成事件，純 .click() 有時無效 */
+                nb.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            }
         });
         doc.body.appendChild(btn);
     }
