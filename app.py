@@ -731,9 +731,44 @@ components.html("""
         (doc.head || doc.documentElement).appendChild(s);
     }
 
+    /* ── 全域點擊監聽：〉按鈕 → 觸發 collapsedControl ── */
+    function setupClickHandler() {
+        doc.addEventListener('click', function (e) {
+            // 向上找到 button 元素
+            var el = e.target;
+            while (el && el.tagName !== 'BUTTON') el = el.parentElement;
+            if (!el) return;
+            var text = el.textContent || el.innerText || '';
+            if (text.indexOf('\u3009') !== -1) {   // 〉的 Unicode
+                var nativeBtn = doc.querySelector('[data-testid="collapsedControl"] button');
+                if (nativeBtn) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    nativeBtn.click();
+                    setTimeout(updateOpenBtn, 350);
+                }
+            }
+        }, true);   // capture 階段，確保在 Streamlit rerun 前攔截
+    }
+
+    /* ── 側邊欄狀態偵測：控制〉按鈕顯隱 ──────────── */
+    function isSidebarOpen() {
+        var sb = doc.querySelector('[data-testid="stSidebar"]');
+        return sb ? sb.getBoundingClientRect().width > 100 : false;
+    }
+
+    function updateOpenBtn() {
+        var wrap = doc.getElementById('sidebar-open-wrap');
+        if (!wrap) return;
+        wrap.style.setProperty('display', isSidebarOpen() ? 'none' : 'block', 'important');
+    }
+
     function init() {
         injectCSS();
         purge(doc.body);
+        setupClickHandler();
+        updateOpenBtn();
+
         var obs = new MutationObserver(function (mutations) {
             var dirty = false;
             for (var i = 0; i < mutations.length; i++) {
@@ -741,7 +776,7 @@ components.html("""
                 if (m.type === 'characterData' && hasKeyword(m.target.nodeValue)) m.target.nodeValue = '';
                 if (m.addedNodes && m.addedNodes.length) dirty = true;
             }
-            if (dirty) { injectCSS(); purge(doc.body); }
+            if (dirty) { injectCSS(); purge(doc.body); updateOpenBtn(); }
         });
         obs.observe(doc.body, { childList: true, subtree: true, characterData: true });
     }
@@ -956,18 +991,9 @@ with st.sidebar:
 
 
 # ── 原生〉按鈕：固定左上角，側邊欄收合時顯示 ────────────────────────────────
-# CSS 透過 #sidebar-open-wrap 定位到 position:fixed left:0
-# 點擊後用最小 JS 觸發原生 collapsedControl，再 rerun 同步狀態
+# 點擊邏輯由 components.html 的全域 click 監聽器處理（不在此 rerun）
 st.markdown('<div id="sidebar-open-wrap">', unsafe_allow_html=True)
-if st.button('〉', key='manual_open_btn'):
-    components.html(
-        "<script>"
-        "var b=window.parent.document.querySelector('[data-testid=\"collapsedControl\"] button');"
-        "if(b){b.click();}"
-        "</script>",
-        height=0,
-    )
-    st.rerun()
+st.button('〉', key='manual_open_btn')
 st.markdown('</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
