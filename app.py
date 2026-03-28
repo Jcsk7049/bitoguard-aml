@@ -88,13 +88,12 @@ html, body, [class*="css"], * {
 
 /* 隱藏側邊欄收合按鈕的 Material Icon 壞掉文字 */
 [data-testid="stSidebarCollapseButton"] span {
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    display: block !important;
     font-size: 0 !important;
-    color: transparent !important;
-}
-[data-testid="stSidebarCollapseButton"] button::after {
-    content: "‹" !important;
-    font-size: 20px !important;
-    color: #8A8078 !important;
 }
 [data-testid="stSidebar"] > div:first-child {
     padding: 2rem 1.6rem 1.5rem !important;
