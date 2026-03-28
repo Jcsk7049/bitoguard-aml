@@ -86,67 +86,49 @@ html, body, [class*="css"], * {
     border-right: 1px solid #DDD8CE !important;
 }
 
-/* ── 側邊欄：收合 / 展開 按鈕（Ghost 風格）─────────────────────────── */
+/* ── 側邊欄收合 / 展開 按鈕 ─────────────────────────────────────────── */
 
-/* 共用樣式：收合按鈕（在 sidebar 內）& 展開按鈕（sidebar 收合後左上角）*/
+/* 徹底隱藏壞掉的 Material Icon span（display:none 是唯一有效方法）*/
+[data-testid="stSidebarCollapseButton"] button span,
+[data-testid="collapsedControl"] button span {
+    display: none !important;
+}
+
+/* 兩顆按鈕共用：漢堡圖示 via ::after */
 [data-testid="stSidebarCollapseButton"] button,
-[data-testid="stSidebarUserContent"] ~ div button,
-[data-testid="collapsedControl"] button,
-button[aria-label="Open sidebar"],
-button[aria-label="Close sidebar"] {
+[data-testid="collapsedControl"] button {
     background: transparent !important;
-    border: 1px solid #C4BAB0 !important;
-    border-radius: 10px !important;
+    border: none !important;
     box-shadow: none !important;
-    padding: 6px !important;
+    border-radius: 8px !important;
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
     min-height: unset !important;
-    transition: background 0.2s, border-color 0.2s !important;
-    color: #3A3228 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: background 0.2s !important;
+    cursor: pointer !important;
 }
 [data-testid="stSidebarCollapseButton"] button:hover,
-[data-testid="collapsedControl"] button:hover,
-button[aria-label="Open sidebar"]:hover,
-button[aria-label="Close sidebar"]:hover {
-    background: rgba(142,115,91,0.10) !important;
-    border-color: #8E735B !important;
+[data-testid="collapsedControl"] button:hover {
+    background: rgba(93,90,84,0.10) !important;
     box-shadow: none !important;
 }
 
-/* SVG 箭頭調色 */
+/* 顯示 SVG 箭頭（Streamlit 原生，調色即可）*/
 [data-testid="stSidebarCollapseButton"] button svg,
-[data-testid="collapsedControl"] button svg,
-button[aria-label="Open sidebar"] svg,
-button[aria-label="Close sidebar"] svg {
-    stroke: #6A6058 !important;
-    fill: none !important;
+[data-testid="collapsedControl"] button svg {
+    stroke: #5D5A54 !important;
+    width: 20px !important;
+    height: 20px !important;
+    display: block !important;
 }
 
-/* 隱藏壞掉的 Material Icon 文字 */
-[data-testid="stSidebarCollapseButton"] span,
-[data-testid="collapsedControl"] span {
-    font-size: 0 !important;
-    visibility: hidden !important;
-    line-height: 0 !important;
-}
-
-/* 展開按鈕（sidebar 收合後顯示在左上角）*/
+/* 展開按鈕容器位置 */
 [data-testid="collapsedControl"] {
-    display: flex !important;
-    align-items: flex-start !important;
-    padding: 1rem 0.5rem !important;
-}
-
-/* 側邊欄收合後，內容全部隱藏，只露出收合按鈕 */
-[data-testid="stSidebar"][aria-expanded="false"] {
-    overflow: hidden !important;
-    min-width: 0 !important;
-}
-[data-testid="stSidebar"][aria-expanded="false"] > div > * {
-    visibility: hidden !important;
-}
-[data-testid="stSidebarCollapseButton"],
-[data-testid="stSidebarCollapseButton"] * {
-    visibility: visible !important;
+    padding: 0.75rem 0.4rem !important;
 }
 [data-testid="stSidebar"] > div:first-child {
     padding: 2rem 1.6rem 1.5rem !important;
@@ -223,91 +205,85 @@ button[aria-label="Close sidebar"] svg {
     color: #3A3228 !important;
 }
 
-/* ── Sidebar 導航按鈕（Ghost / Gemini 風格）─────────────────────────── */
+/* ── Sidebar 導航（YouTube 風格）────────────────────────────────────── */
 
-/* stButton 容器：去除多餘 margin，確保寬度填滿 */
 [data-testid="stSidebar"] .stButton {
-    margin: 1px 0 !important;
+    margin: 0 !important;
     width: 100% !important;
 }
 
-/* 基礎 Ghost 樣式（覆蓋全域按鈕）*/
+/* 預設：完全透明，無邊框 */
 [data-testid="stSidebar"] .stButton > button {
     width: 100% !important;
     text-align: left !important;
     justify-content: flex-start !important;
     background: transparent !important;
-    color: #5D5A54 !important;
+    color: #3A3228 !important;
     border: none !important;
-    border-radius: 20px !important;
+    border-radius: 10px !important;
     box-shadow: none !important;
-    font-size: 13px !important;
+    font-size: 14px !important;
     font-weight: 500 !important;
-    letter-spacing: 0.2px !important;
-    padding: 10px 16px 10px 42px !important;
-    margin: 0 !important;
+    letter-spacing: 0.1px !important;
+    padding: 8px 12px 8px 44px !important;
+    margin: 2px 0 !important;
     min-height: unset !important;
     position: relative !important;
-    transition: background 0.2s, color 0.2s !important;
+    transition: background 0.15s !important;
 }
 
-/* Icon 區（::before，定位在文字左側）*/
+/* icon：position absolute 貼左 */
 [data-testid="stSidebar"] .stButton > button::before {
     content: "" !important;
     position: absolute !important;
-    left: 14px !important;
+    left: 12px !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
-    width: 16px !important;
-    height: 16px !important;
+    width: 18px !important;
+    height: 18px !important;
     background-repeat: no-repeat !important;
     background-size: contain !important;
-    background-position: center !important;
-    opacity: 0.55 !important;
-    transition: opacity 0.2s !important;
+    opacity: 0.6 !important;
+    transition: opacity 0.15s !important;
 }
 
-/* Hover */
+/* Hover：淺灰底（與 YouTube 一樣）*/
 [data-testid="stSidebar"] .stButton > button:hover {
-    background: rgba(93,90,84,0.08) !important;
-    color: #2C2720 !important;
+    background: rgba(0,0,0,0.06) !important;
     border: none !important;
     box-shadow: none !important;
+    color: #1A1714 !important;
 }
 [data-testid="stSidebar"] .stButton > button:hover::before {
-    opacity: 0.85 !important;
+    opacity: 0.9 !important;
 }
 [data-testid="stSidebar"] .stButton > button:active {
     transform: none !important;
     box-shadow: none !important;
 }
 
-/* 數據總覽 icon — Layout Dashboard */
+/* Icons（SVG data URI）*/
 [data-testid="stSidebar"] .stButton:nth-of-type(1) > button::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235D5A54' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Cline x1='3' y1='9' x2='21' y2='9'/%3E%3Cline x1='9' y1='21' x2='9' y2='9'/%3E%3C/svg%3E") !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%233A3228' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Cline x1='3' y1='9' x2='21' y2='9'/%3E%3Cline x1='9' y1='21' x2='9' y2='9'/%3E%3C/svg%3E") !important;
 }
-/* 風險查詢 icon — Search */
 [data-testid="stSidebar"] .stButton:nth-of-type(2) > button::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235D5A54' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%233A3228' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") !important;
 }
-/* 模型表現 icon — Bar Chart */
 [data-testid="stSidebar"] .stButton:nth-of-type(3) > button::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235D5A54' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='20' x2='18' y2='10'/%3E%3Cline x1='12' y1='20' x2='12' y2='4'/%3E%3Cline x1='6' y1='20' x2='6' y2='14'/%3E%3C/svg%3E") !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%233A3228' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='20' x2='18' y2='10'/%3E%3Cline x1='12' y1='20' x2='12' y2='4'/%3E%3Cline x1='6' y1='20' x2='6' y2='14'/%3E%3C/svg%3E") !important;
 }
-/* 預測結果 icon — Database */
 [data-testid="stSidebar"] .stButton:nth-of-type(4) > button::before {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235D5A54' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='9' ry='3'/%3E%3Cpath d='M21 12c0 1.66-4 3-9 3s-9-1.34-9-3'/%3E%3Cpath d='M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5'/%3E%3C/svg%3E") !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%233A3228' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='9' ry='3'/%3E%3Cpath d='M21 12c0 1.66-4 3-9 3s-9-1.34-9-3'/%3E%3Cpath d='M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5'/%3E%3C/svg%3E") !important;
 }
 
-/* 刷新資料按鈕（第 5 個，獨立樣式）*/
+/* 刷新資料（第 5 個）：居中、細邊框 */
 [data-testid="stSidebar"] .stButton:nth-of-type(5) > button {
-    padding: 8px 16px !important;
+    padding: 7px 12px !important;
     border: 1px solid #C8B8A8 !important;
-    border-radius: 10px !important;
-    color: #8A7868 !important;
-    font-size: 12px !important;
     justify-content: center !important;
-    text-align: center !important;
+    font-size: 12.5px !important;
+    color: #7A6A5A !important;
+    margin-top: 4px !important;
 }
 [data-testid="stSidebar"] .stButton:nth-of-type(5) > button::before {
     display: none !important;
@@ -627,20 +603,18 @@ with st.sidebar:
     _idx = _NAV.index(st.session_state["page"]) + 1
     st.markdown(f"""<style>
 [data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button {{
-    background: rgba(142,115,91,0.14) !important;
-    color: #2C2010 !important;
-    font-weight: 600 !important;
+    background: rgba(0,0,0,0.09) !important;
+    color: #1A1714 !important;
+    font-weight: 700 !important;
     border: none !important;
-    box-shadow: inset 3px 0 0 #8E735B !important;
-    border-radius: 0 20px 20px 0 !important;
+    box-shadow: none !important;
+    border-radius: 10px !important;
 }}
 [data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button::before {{
     opacity: 1 !important;
-    filter: sepia(1) saturate(1.2) hue-rotate(10deg) brightness(0.7) !important;
 }}
 [data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button:hover {{
-    background: rgba(142,115,91,0.20) !important;
-    color: #2C2010 !important;
+    background: rgba(0,0,0,0.12) !important;
 }}
 </style>""", unsafe_allow_html=True)
 
