@@ -85,6 +85,24 @@ html, body, [class*="css"], * {
     background-color: #EDE8DF !important;
     border-right: 1px solid #DDD8CE !important;
 }
+
+/* 隱藏側邊欄收合按鈕的 Material Icon 壞掉文字 */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapseButton"] *,
+button[kind="headerNoPadding"],
+button[kind="headerNoPadding"] * {
+    font-size: 0 !important;
+    color: transparent !important;
+    overflow: hidden !important;
+}
+[data-testid="stSidebarCollapseButton"]::after,
+button[kind="headerNoPadding"]::after {
+    content: "‹" !important;
+    font-size: 20px !important;
+    color: #8A8078 !important;
+    display: block !important;
+    line-height: 1 !important;
+}
 [data-testid="stSidebar"] > div:first-child {
     padding: 2rem 1.6rem 1.5rem !important;
 }
