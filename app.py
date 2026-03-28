@@ -99,28 +99,34 @@ html, body, [class*="css"], * {
 .stDownloadButton > button {
     border-radius: 12px !important;
     background: #8E735B !important;
-    color: #FEFCF8 !important;
+    color: #FFFFFF !important;
     border: 1px solid #7A6148 !important;
     font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'Inter', sans-serif !important;
     font-size: 13px !important;
     font-weight: 600 !important;
     letter-spacing: 0.5px !important;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.10), 0 1px 3px rgba(0,0,0,0.06) !important;
+    box-shadow: 0 4px 14px 0 rgba(142, 115, 91, 0.39) !important;
     transition: background 0.18s, box-shadow 0.18s, transform 0.12s !important;
     padding: 0.45rem 1.2rem !important;
+}
+/* 強制所有子元素繼承純白文字 */
+.stButton > button *,
+.stDownloadButton > button * {
+    color: #FFFFFF !important;
 }
 .stButton > button:hover,
 .stDownloadButton > button:hover {
     background: #7A6148 !important;
-    box-shadow: 0 6px 12px -2px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08) !important;
+    box-shadow: 0 6px 20px 0 rgba(142, 115, 91, 0.50) !important;
     border-color: #6A5238 !important;
     color: #FFFFFF !important;
 }
 .stButton > button:active,
 .stDownloadButton > button:active {
     background: #6A5238 !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+    box-shadow: 0 2px 6px 0 rgba(142, 115, 91, 0.25) !important;
     transform: translateY(1px) !important;
+    color: #FFFFFF !important;
 }
 
 /* ── 文字輸入（圓角 12px）────────────────────────────────────────────── */
@@ -473,8 +479,9 @@ with st.sidebar:
                 unsafe_allow_html=True)
 
     st.markdown(f"""
-    <div style="background:#E6E0D6;border:1px solid #DDD8CE;border-radius:14px;
-                padding:18px 18px 14px;margin-top:8px;">
+    <div style="background:#FDFAF5;border:1px solid #D8D0C4;border-radius:14px;
+                padding:18px 18px 14px;margin-top:8px;
+                box-shadow:0 1px 4px rgba(0,0,0,0.04);">
         <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;
                     color:#B0A898;margin-bottom:12px;">MODEL INFO</div>
         <div style="display:flex;justify-content:space-between;padding:5px 0;
