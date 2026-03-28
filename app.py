@@ -86,14 +86,51 @@ html, body, [class*="css"], * {
     border-right: 1px solid #DDD8CE !important;
 }
 
-/* 隱藏側邊欄收合按鈕的 Material Icon 壞掉文字 */
+/* ── 側邊欄收合按鈕 ─────────────────────────────────────────────────── */
+/* 藏掉壞掉的 Material Icon 文字 */
 [data-testid="stSidebarCollapseButton"] span {
-    visibility: hidden !important;
-    width: 0 !important;
-    height: 0 !important;
-    overflow: hidden !important;
-    display: block !important;
     font-size: 0 !important;
+    line-height: 0 !important;
+    visibility: hidden !important;
+}
+/* 讓按鈕本身有明確樣式 */
+[data-testid="stSidebarCollapseButton"] button {
+    background: #E8E2D8 !important;
+    border: 1px solid #C8C0B0 !important;
+    border-radius: 8px !important;
+    width: 28px !important;
+    height: 28px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: none !important;
+    color: #6A6058 !important;
+    padding: 0 !important;
+    min-height: unset !important;
+}
+[data-testid="stSidebarCollapseButton"] button:hover {
+    background: #D8D0C4 !important;
+    border-color: #A89888 !important;
+    box-shadow: none !important;
+}
+/* SVG 箭頭（Streamlit 原生）保留並調色 */
+[data-testid="stSidebarCollapseButton"] button svg {
+    stroke: #6A6058 !important;
+    width: 16px !important;
+    height: 16px !important;
+}
+
+/* 側邊欄收合後防止導航文字溢出 */
+[data-testid="stSidebar"][aria-expanded="false"] {
+    overflow: hidden !important;
+    min-width: 0 !important;
+}
+[data-testid="stSidebar"][aria-expanded="false"] * {
+    visibility: hidden !important;
+}
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapseButton"] * {
+    visibility: visible !important;
 }
 [data-testid="stSidebar"] > div:first-child {
     padding: 2rem 1.6rem 1.5rem !important;
