@@ -726,11 +726,16 @@ components.html("""
             'font-size:22px!important;font-weight:bold!important;color:#8E735B!important;' +
             'visibility:visible!important;display:block!important;font-family:sans-serif!important;}' +
             '[data-testid="stSidebarCollapseButton"] button::after{content:none!important;display:none!important;}' +
-            /* ── 側邊欄展開按鈕（〉）：直接改造原生 collapsedControl，無需 JS 點擊 ── */
+            /* ── Header：visibility:hidden（非 display:none），子元素可覆蓋 ── */
+            '[data-testid="stHeader"]{background:transparent!important;box-shadow:none!important;' +
+            'border:none!important;}' +
+            '[data-testid="stHeader"] *{visibility:hidden!important;pointer-events:none!important;}' +
+            /* ── collapsedControl：從 header 內「浮出」，改造為〉按鈕 ── */
+            '[data-testid="collapsedControl"],' +
+            '[data-testid="collapsedControl"] *{visibility:visible!important;pointer-events:auto!important;}' +
             '[data-testid="collapsedControl"]{' +
             'position:fixed!important;top:12px!important;left:0!important;' +
-            'z-index:9999999!important;opacity:1!important;pointer-events:auto!important;' +
-            'width:42px!important;height:42px!important;font-size:0!important;}' +
+            'z-index:9999999!important;width:42px!important;height:42px!important;font-size:0!important;}' +
             '[data-testid="collapsedControl"] button{all:unset!important;display:flex!important;' +
             'align-items:center!important;justify-content:center!important;' +
             'width:42px!important;height:42px!important;' +
@@ -738,17 +743,10 @@ components.html("""
             'border-radius:0 8px 8px 0!important;cursor:pointer!important;' +
             'box-shadow:2px 0 10px rgba(0,0,0,.1)!important;}' +
             '[data-testid="collapsedControl"] span,' +
-            '[data-testid="collapsedControl"] svg{display:none!important;visibility:hidden!important;}' +
+            '[data-testid="collapsedControl"] svg{visibility:hidden!important;display:none!important;}' +
             '[data-testid="collapsedControl"] button::before{content:"\\3009"!important;' +
             'font-size:20px!important;font-weight:bold!important;color:#8E735B!important;' +
-            'font-family:sans-serif!important;display:block!important;}' +
-            /* ── Header：透明化但不 display:none，否則會連帶隱藏 collapsedControl ── */
-            '[data-testid="stHeader"]{background:transparent!important;box-shadow:none!important;' +
-            'border:none!important;pointer-events:none!important;}' +
-            /* 隱藏 Header 內所有子元素（toolbar、decoration 等），但排除 collapsedControl */
-            '[data-testid="stHeader"]>div>*:not([data-testid="collapsedControl"]),' +
-            '[data-testid="stHeader"]>div>*:not([data-testid="collapsedControl"])>*{' +
-            'visibility:hidden!important;pointer-events:none!important;}';
+            'font-family:sans-serif!important;display:block!important;visibility:visible!important;}';
         (doc.head || doc.documentElement).appendChild(s);
     }
 
