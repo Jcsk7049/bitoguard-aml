@@ -163,8 +163,16 @@ html, body, [class*="css"], * {
     pointer-events: none !important;
     width: 0 !important; height: 0 !important;
 }
-/* 隱藏 Streamlit 自帶的視覺圓圈（input 後的第一個 div）*/
-[data-testid="stRadio"] input + div {
+/* 多層選擇器確保圓圈被隱藏（不同 Streamlit 版本結構不同）*/
+[data-testid="stRadio"] input + div,
+[data-testid="stRadio"] [data-baseweb="radio"],
+[data-testid="stRadio"] label > div:first-of-type,
+[data-testid="stRadio"] label > div:first-child {
+    display: none !important;
+}
+
+/* 隱藏側邊欄收合按鈕的壞掉 Material Icon 文字 */
+[data-testid="stSidebarCollapseButton"] span {
     display: none !important;
 }
 
