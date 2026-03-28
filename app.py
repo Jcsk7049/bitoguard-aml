@@ -154,7 +154,15 @@ html, body, [class*="css"], * {
     color: #3A3228 !important;
 }
 
-/* ── Sidebar 導航按鈕 ────────────────────────────────────────────────── */
+/* ── Sidebar 導航按鈕（Ghost / Gemini 風格）─────────────────────────── */
+
+/* stButton 容器：去除多餘 margin，確保寬度填滿 */
+[data-testid="stSidebar"] .stButton {
+    margin: 1px 0 !important;
+    width: 100% !important;
+}
+
+/* 基礎 Ghost 樣式 */
 [data-testid="stSidebar"] .stButton > button {
     width: 100% !important;
     text-align: left !important;
@@ -162,36 +170,77 @@ html, body, [class*="css"], * {
     background: transparent !important;
     color: #5D5A54 !important;
     border: none !important;
-    border-radius: 12px !important;
+    border-radius: 20px !important;
     box-shadow: none !important;
-    font-size: 13.5px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.3px !important;
-    padding: 12px 20px !important;
-    margin: 6px 0 !important;
-    transition: background 0.15s !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.2px !important;
+    padding: 10px 16px 10px 42px !important;
+    margin: 0 !important;
+    position: relative !important;
+    transition: background 0.2s, color 0.2s !important;
 }
+
+/* Icon 區（::before，定位在文字左側）*/
+[data-testid="stSidebar"] .stButton > button::before {
+    content: "" !important;
+    position: absolute !important;
+    left: 14px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 16px !important;
+    height: 16px !important;
+    background-repeat: no-repeat !important;
+    background-size: contain !important;
+    background-position: center !important;
+    opacity: 0.55 !important;
+    transition: opacity 0.2s !important;
+}
+
+/* Hover */
 [data-testid="stSidebar"] .stButton > button:hover {
-    background: #E0DDD5 !important;
-    color: #3A3228 !important;
-    box-shadow: none !important;
+    background: rgba(93,90,84,0.08) !important;
+    color: #2C2720 !important;
     border: none !important;
+    box-shadow: none !important;
+}
+[data-testid="stSidebar"] .stButton > button:hover::before {
+    opacity: 0.85 !important;
 }
 [data-testid="stSidebar"] .stButton > button:active {
     transform: none !important;
     box-shadow: none !important;
 }
-/* 刷新資料按鈕（最後一個）*/
-[data-testid="stSidebar"] .stButton:last-of-type > button {
-    background: transparent !important;
-    border: 1px solid #C8B8A4 !important;
+
+/* 數據總覽 icon — Layout Dashboard */
+[data-testid="stSidebar"] .stButton:nth-of-type(1) > button::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235D5A54' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2'/%3E%3Cline x1='3' y1='9' x2='21' y2='9'/%3E%3Cline x1='9' y1='21' x2='9' y2='9'/%3E%3C/svg%3E") !important;
+}
+/* 風險查詢 icon — Search */
+[data-testid="stSidebar"] .stButton:nth-of-type(2) > button::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235D5A54' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") !important;
+}
+/* 模型表現 icon — Bar Chart */
+[data-testid="stSidebar"] .stButton:nth-of-type(3) > button::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235D5A54' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='18' y1='20' x2='18' y2='10'/%3E%3Cline x1='12' y1='20' x2='12' y2='4'/%3E%3Cline x1='6' y1='20' x2='6' y2='14'/%3E%3C/svg%3E") !important;
+}
+/* 預測結果 icon — Database */
+[data-testid="stSidebar"] .stButton:nth-of-type(4) > button::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235D5A54' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='5' rx='9' ry='3'/%3E%3Cpath d='M21 12c0 1.66-4 3-9 3s-9-1.34-9-3'/%3E%3Cpath d='M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5'/%3E%3C/svg%3E") !important;
+}
+
+/* 刷新資料按鈕（第 5 個，獨立樣式）*/
+[data-testid="stSidebar"] .stButton:nth-of-type(5) > button {
+    padding: 8px 16px !important;
+    border: 1px solid #C8B8A8 !important;
+    border-radius: 10px !important;
     color: #8A7868 !important;
-    font-size: 12.5px !important;
-    font-weight: 500 !important;
+    font-size: 12px !important;
     justify-content: center !important;
     text-align: center !important;
-    margin-top: 8px !important;
-    box-shadow: none !important;
+}
+[data-testid="stSidebar"] .stButton:nth-of-type(5) > button::before {
+    display: none !important;
 }
 
 /* ── Headings ───────────────────────────────────────────────────────── */
@@ -503,21 +552,25 @@ with st.sidebar:
         st.session_state["page"] = "數據總覽"
 
     _NAV = ["數據總覽", "風險查詢", "模型表現", "預測結果"]
-    _NAV_ICO = ["layers", "search", "bar-chart", "database"]
 
-    # 注入 active 按鈕樣式（用 nth-of-type 定位當前頁）
+    # 注入 active 樣式：膠囊底色 + inset 左線 + icon 提亮
     _idx = _NAV.index(st.session_state["page"]) + 1
     st.markdown(f"""<style>
 [data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button {{
-    background: #8E735B !important;
-    color: #FFFFFF !important;
-    font-weight: 700 !important;
+    background: rgba(142,115,91,0.14) !important;
+    color: #2C2010 !important;
+    font-weight: 600 !important;
     border: none !important;
-    box-shadow: 0 2px 8px rgba(142,115,91,0.30) !important;
+    box-shadow: inset 3px 0 0 #8E735B !important;
+    border-radius: 0 20px 20px 0 !important;
+}}
+[data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button::before {{
+    opacity: 1 !important;
+    filter: sepia(1) saturate(1.2) hue-rotate(10deg) brightness(0.7) !important;
 }}
 [data-testid="stSidebar"] .stButton:nth-of-type({_idx}) > button:hover {{
-    background: #7A6148 !important;
-    color: #FFFFFF !important;
+    background: rgba(142,115,91,0.20) !important;
+    color: #2C2010 !important;
 }}
 </style>""", unsafe_allow_html=True)
 
