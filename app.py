@@ -104,41 +104,45 @@ html, body, [class*="css"], * {
     color: #6A6058 !important;
 }
 
-/* ── 全域按鈕（琥珀深金 + 純白文字）────────────────────────────────── */
+/* ── 全域按鈕（Ghost 風格，比照側邊欄導航）─────────────────────────── */
 .stButton > button,
 .stDownloadButton > button {
-    border-radius: 12px !important;
-    background: #8E735B !important;
-    color: #FFFFFF !important;
-    border: 1px solid #7A6148 !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: #3A3228 !important;
+    border: 1px solid #C4BAB0 !important;
     font-family: 'Noto Sans TC', 'Microsoft JhengHei', 'Inter', sans-serif !important;
     font-size: 13.5px !important;
     font-weight: 600 !important;
-    letter-spacing: 0.4px !important;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;
-    transition: background 0.18s, box-shadow 0.18s, transform 0.12s !important;
-    padding: 0.6rem 1.4rem !important;
+    letter-spacing: 0.3px !important;
+    box-shadow: none !important;
+    transition: background 0.2s, border-color 0.2s, color 0.2s !important;
+    padding: 0.55rem 1.4rem !important;
     min-height: 42px !important;
     line-height: 1.4 !important;
 }
-/* 強制子元素白色（防止 Streamlit 內部 span 覆蓋）*/
 .stButton > button *,
 .stDownloadButton > button * {
-    color: #FFFFFF !important;
+    color: #3A3228 !important;
 }
 .stButton > button:hover,
 .stDownloadButton > button:hover {
-    background: #7A6148 !important;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.20) !important;
-    border-color: #6A5238 !important;
-    color: #FFFFFF !important;
+    background: rgba(142,115,91,0.10) !important;
+    border-color: #8E735B !important;
+    color: #2C2010 !important;
+    box-shadow: none !important;
+}
+.stButton > button *:hover,
+.stDownloadButton > button *:hover {
+    color: #2C2010 !important;
 }
 .stButton > button:active,
 .stDownloadButton > button:active {
-    background: #6A5238 !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.10) !important;
+    background: rgba(142,115,91,0.18) !important;
+    border-color: #7A6148 !important;
+    box-shadow: none !important;
     transform: translateY(1px) !important;
-    color: #FFFFFF !important;
+    color: #2C2010 !important;
 }
 
 /* ── 文字輸入（圓角 12px）────────────────────────────────────────────── */
