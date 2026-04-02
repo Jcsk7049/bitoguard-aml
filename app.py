@@ -699,6 +699,86 @@ folds = report["folds"]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# 封面頁
+# ══════════════════════════════════════════════════════════════════════════════
+if "entered" not in st.session_state:
+    st.session_state["entered"] = False
+
+if not st.session_state["entered"]:
+    st.markdown("""
+    <style>
+    [data-testid="stSidebar"]{ display:none !important; }
+    header, footer { display:none !important; }
+    .cover-wrap {
+        display:flex; flex-direction:column; align-items:center;
+        justify-content:center; min-height:88vh; text-align:center;
+        gap:0;
+    }
+    .cover-logo { font-size:96px; margin-bottom:12px; line-height:1; }
+    .cover-title {
+        font-size:clamp(28px,5vw,58px); font-weight:800;
+        background: linear-gradient(135deg,#2d6a4f,#1e3a5f,#4a1a6e);
+        -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+        margin:0 0 10px;
+    }
+    .cover-sub {
+        font-size:clamp(14px,2vw,20px); color:#888; margin-bottom:36px;
+        letter-spacing:1.5px;
+    }
+    .cover-badge {
+        display:inline-flex; gap:14px; flex-wrap:wrap; justify-content:center;
+        margin-bottom:40px;
+    }
+    .badge {
+        background:rgba(45,106,79,0.10); border:1px solid rgba(45,106,79,0.25);
+        border-radius:20px; padding:6px 16px; font-size:13px; color:#2d6a4f;
+        font-weight:600;
+    }
+    .cover-enter-btn {
+        display:inline-block;
+        background:linear-gradient(135deg,#2d6a4f,#1e3a5f);
+        color:white !important; font-size:18px; font-weight:700;
+        padding:16px 52px; border-radius:50px;
+        box-shadow:0 8px 32px rgba(30,58,95,0.35);
+        cursor:pointer; border:none; letter-spacing:1px;
+        transition:transform 0.15s, box-shadow 0.15s;
+        text-decoration:none;
+    }
+    .cover-enter-btn:hover {
+        transform:translateY(-2px);
+        box-shadow:0 12px 40px rgba(30,58,95,0.45);
+    }
+    .cover-footer {
+        position:fixed; bottom:18px; width:100%; text-align:center;
+        font-size:12px; color:#bbb; letter-spacing:0.5px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="cover-wrap">
+        <div class="cover-logo">🛡️</div>
+        <div class="cover-title">BitoGuard AML</div>
+        <div class="cover-sub">ANTI-MONEY LAUNDERING INTELLIGENCE SYSTEM</div>
+        <div class="cover-badge">
+            <span class="badge">⚡ LightGBM 模型</span>
+            <span class="badge">📊 5-Fold 交叉驗證</span>
+            <span class="badge">🔍 12,753 用戶預測</span>
+            <span class="badge">🏆 BitoPro Hackathon 2026</span>
+        </div>
+    </div>
+    <div class="cover-footer">BitoPro × AWS Hackathon 2026 — BitoGuard Team</div>
+    """, unsafe_allow_html=True)
+
+    col_l, col_c, col_r = st.columns([2, 1, 2])
+    with col_c:
+        if st.button("▶  進入系統", use_container_width=True, type="primary"):
+            st.session_state["entered"] = True
+            st.rerun()
+    st.stop()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # Sidebar
 # ══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
