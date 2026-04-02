@@ -715,60 +715,66 @@ if not st.session_state["entered"]:
     .block-container { padding:0 !important; max-width:100% !important; }
     #cover-overlay {
         position:fixed; inset:0; z-index:9999;
-        background: linear-gradient(160deg,#0d1b2a 0%,#1a3a2a 50%,#0d1b2a 100%);
+        background: linear-gradient(160deg, #EDE8DF 0%, #F5F2EE 45%, #E4DDD3 100%);
         display:flex; flex-direction:column;
         align-items:center; justify-content:center;
         cursor:pointer;
         transition: transform 0.75s cubic-bezier(0.77,0,0.18,1);
+        user-select:none;
     }
     #cover-overlay.slide-up {
         transform: translateY(-100%);
     }
-    .cover-title {
-        font-size: clamp(36px,6vw,72px);
-        font-weight:900; letter-spacing:2px;
-        color:#ffffff;
-        margin:0 0 8px;
-        text-shadow: 0 2px 40px rgba(100,200,150,0.3);
+    .cover-eyebrow {
+        font-size:11px; letter-spacing:5px; text-transform:uppercase;
+        color:#B0A89E; font-weight:600; margin-bottom:20px;
     }
-    .cover-title span { color:#4ecca3; }
+    .cover-title {
+        font-size: clamp(42px,7vw,88px);
+        font-weight:900; letter-spacing:-1px;
+        color:#1E1A16;
+        margin:0 0 6px;
+        line-height:1.05;
+    }
+    .cover-title span { color:#7A9B8A; }
     .cover-sub {
-        font-size:clamp(12px,1.5vw,16px);
-        color:rgba(255,255,255,0.45);
-        letter-spacing:4px; margin-bottom:52px;
+        font-size:clamp(11px,1.3vw,14px);
+        color:#B0A89E;
+        letter-spacing:3px; margin-bottom:48px;
         text-transform:uppercase;
     }
+    .cover-divider {
+        width:48px; height:2px;
+        background:linear-gradient(90deg, transparent, #8E735B, transparent);
+        margin:0 0 44px;
+    }
     .cover-badges {
-        display:flex; gap:12px; flex-wrap:wrap;
-        justify-content:center; margin-bottom:64px;
+        display:flex; gap:10px; flex-wrap:wrap;
+        justify-content:center; margin-bottom:72px;
     }
     .cbadge {
-        border:1px solid rgba(78,204,163,0.35);
-        background:rgba(78,204,163,0.08);
-        color:rgba(78,204,163,0.85);
-        border-radius:999px; padding:5px 18px;
-        font-size:12px; font-weight:600; letter-spacing:0.5px;
+        border:1px solid #D8D2C8;
+        background:#FFFFFF;
+        color:#8E735B;
+        border-radius:999px; padding:5px 16px;
+        font-size:11.5px; font-weight:600; letter-spacing:0.3px;
     }
     .cover-hint {
-        position:absolute; bottom:36px;
-        display:flex; flex-direction:column; align-items:center; gap:6px;
-        color:rgba(255,255,255,0.3); font-size:12px; letter-spacing:2px;
+        position:absolute; bottom:40px;
+        display:flex; flex-direction:column; align-items:center; gap:8px;
+        color:#C0B8AE; font-size:10.5px; letter-spacing:3px;
+        text-transform:uppercase;
     }
     .hint-arrow {
-        width:22px; height:22px;
-        border-right:2px solid rgba(78,204,163,0.5);
-        border-top:2px solid rgba(78,204,163,0.5);
-        transform:rotate(-45deg);
-        animation: bounce 1.4s ease-in-out infinite;
+        width:20px; height:20px;
+        border-right:2px solid #B8AFA5;
+        border-bottom:2px solid #B8AFA5;
+        transform:rotate(45deg);
+        animation: bounce 1.6s ease-in-out infinite;
     }
     @keyframes bounce {
-        0%,100%{ transform:translateY(0) rotate(-45deg); opacity:.4; }
-        50%    { transform:translateY(-7px) rotate(-45deg); opacity:1; }
-    }
-    .cover-line {
-        width:60px; height:2px;
-        background:linear-gradient(90deg,transparent,#4ecca3,transparent);
-        margin:18px 0;
+        0%,100%{ transform:translateY(0) rotate(45deg); opacity:.35; }
+        50%    { transform:translateY(6px) rotate(45deg); opacity:.9; }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -776,43 +782,65 @@ if not st.session_state["entered"]:
     # 封面 HTML + JS：點任意處 → slide-up → 觸發隱藏 Streamlit 按鈕
     st.markdown("""
     <div id="cover-overlay" onclick="triggerEnter()">
-        <div class="cover-title">Bito<span>Guard</span> AML</div>
-        <div class="cover-sub">Anti-Money Laundering Intelligence System</div>
-        <div class="cover-line"></div>
+        <div class="cover-eyebrow">BitoPro Hackathon 2026</div>
+        <div class="cover-title">Bito<span>Guard</span></div>
+        <div class="cover-sub">Anti-Money Laundering Intelligence</div>
+        <div class="cover-divider"></div>
         <div class="cover-badges">
             <span class="cbadge">LightGBM</span>
             <span class="cbadge">5-Fold CV</span>
-            <span class="cbadge">AUC 81.8%</span>
+            <span class="cbadge">AUC 83.2%</span>
             <span class="cbadge">12,753 Users</span>
-            <span class="cbadge">BitoPro Hackathon 2026</span>
         </div>
         <div class="cover-hint">
-            <span>CLICK ANYWHERE</span>
+            <span>Click anywhere to enter</span>
             <div class="hint-arrow"></div>
         </div>
     </div>
 
     <script>
-    function triggerEnter() {
-        var overlay = document.getElementById('cover-overlay');
-        overlay.classList.add('slide-up');
-        setTimeout(function() {
-            var btns = window.parent.document.querySelectorAll('button');
-            for (var i = 0; i < btns.length; i++) {
-                if (btns[i].innerText.trim() === '__enter__') {
-                    btns[i].click();
-                    break;
+    (function() {
+        function triggerEnter() {
+            var overlay = document.getElementById('cover-overlay');
+            if (!overlay || overlay.classList.contains('slide-up')) return;
+            overlay.classList.add('slide-up');
+
+            setTimeout(function() {
+                // 嘗試在當前 document 找按鈕
+                function clickEnterBtn(doc) {
+                    var btns = doc.querySelectorAll('button');
+                    for (var i = 0; i < btns.length; i++) {
+                        var txt = (btns[i].innerText || btns[i].textContent || '').trim();
+                        if (txt === '__enter__') { btns[i].click(); return true; }
+                    }
+                    return false;
                 }
+                if (!clickEnterBtn(document)) {
+                    try { clickEnterBtn(window.parent.document); } catch(e) {}
+                }
+            }, 650);
+        }
+
+        // 點擊封面任意處
+        document.addEventListener('click', function(e) {
+            var overlay = document.getElementById('cover-overlay');
+            if (overlay && !overlay.classList.contains('slide-up')) {
+                triggerEnter();
             }
-        }, 650);
-    }
+        });
+
+        window.triggerEnter = triggerEnter;
+    })();
     </script>
     """, unsafe_allow_html=True)
 
     # 隱藏觸發按鈕（JS 點擊它來通知 Python）
     st.markdown("""
     <style>
-    div[data-testid="stButton"]:last-child { visibility:hidden; height:0; overflow:hidden; }
+    div[data-testid="stButton"]:last-child > button {
+        position:absolute; opacity:0; pointer-events:none;
+        width:1px; height:1px; overflow:hidden;
+    }
     </style>""", unsafe_allow_html=True)
     if st.button("__enter__"):
         st.session_state["entered"] = True
