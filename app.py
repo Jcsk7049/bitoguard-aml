@@ -901,6 +901,7 @@ with st.sidebar:
     for _label in _NAV:
         if st.button(_label, key=f"_nav_{_label}"):
             st.session_state["page"] = _label
+            st.session_state["show_fade"] = True
             st.rerun()
 
     page = st.session_state["page"]
