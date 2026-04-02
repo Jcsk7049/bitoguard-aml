@@ -82,12 +82,27 @@ html, body, [class*="css"], * {
 }
 
 /* ── Sidebar：固定展開，隱藏收納 / 展開按鈕 ─────────────────────────── */
+[data-testid="stSidebar"],
+[data-testid="stSidebar"] > div,
+[data-testid="stSidebar"] > div > div {
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 260px !important;
+}
 [data-testid="stSidebar"] {
     background-color: #EDE8DF !important;
     border-right: 1px solid #DDD8CE !important;
-    transform: none !important;
-    min-width: 240px !important;
+    transform: translateX(0) !important;
     visibility: visible !important;
+    left: 0 !important;
+    position: fixed !important;
+    height: 100vh !important;
+    top: 0 !important;
+    z-index: 999 !important;
+}
+/* 主內容區偏移，避免被固定 sidebar 遮住 */
+.main .block-container {
+    margin-left: 260px !important;
 }
 /* 收納箭頭按鈕（sidebar 內的 collapse button） */
 [data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"],
