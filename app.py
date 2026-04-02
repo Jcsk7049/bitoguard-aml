@@ -73,6 +73,11 @@ html, body, [class*="css"], * {
 }
 .stApp {
     background-color: #F2EFE9 !important;
+    animation: appFadeIn 0.45s ease-out both;
+}
+@keyframes appFadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 /* ── 主內容容器：限寬 + 左右留白，避免撐滿螢幕 ─────────────────────── */
@@ -717,10 +722,15 @@ if not st.session_state["entered"]:
     /* 封面背景（指標內容，pointer-events:none 讓點擊穿透到按鈕）*/
     #cover-bg {
         position:fixed; inset:0; z-index:99;
-        background: linear-gradient(160deg, #EDE8DF 0%, #F5F2EE 45%, #E4DDD3 100%);
+        background: #F2EFE9;
         display:flex; flex-direction:column;
         align-items:center; justify-content:center;
         pointer-events:none; user-select:none;
+        transition: transform 0.65s cubic-bezier(0.77,0,0.18,1);
+        will-change: transform;
+    }
+    #cover-bg.slide-up {
+        transform: translateY(-100%);
     }
     .cover-eyebrow {
         font-size:11px; letter-spacing:5px; text-transform:uppercase;
@@ -810,6 +820,20 @@ if not st.session_state["entered"]:
             <div class="hint-arrow"></div>
         </div>
     </div>
+    <script>
+    (function() {
+        // mousedown 比 click 早觸發：按下瞬間先播動畫，rerun 完成時動畫已跑完
+        function attachSlide() {
+            var btn = document.querySelector('div[data-testid="stButton"] > button');
+            if (!btn) { setTimeout(attachSlide, 80); return; }
+            btn.addEventListener('mousedown', function() {
+                var cover = document.getElementById('cover-bg');
+                if (cover) cover.classList.add('slide-up');
+            }, { once: true });
+        }
+        attachSlide();
+    })();
+    </script>
     """, unsafe_allow_html=True)
 
     # 全螢幕透明按鈕：點擊任何地方都會觸發
