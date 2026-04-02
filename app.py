@@ -839,18 +839,21 @@ if not st.session_state["entered"]:
     st.stop()
 
 
-# ── 封面跳轉後淡出遮罩（只在進入後第一次渲染時注入新 DOM 元素）────────────────
-if st.session_state.pop("show_fade", False):
-    st.markdown("""
+# ── 頁面過場淡出遮罩：每次用唯一 ID + keyframe 名，強制瀏覽器重播動畫 ──────────
+if st.session_state.get("show_fade", False):
+    st.session_state["show_fade"] = False
+    _fid = st.session_state.get("_fade_seq", 0) + 1
+    st.session_state["_fade_seq"] = _fid
+    st.markdown(f"""
     <style>
-    #enter-fade {
+    #ef{_fid} {{
         position:fixed; inset:0; z-index:9990;
         background:#F2EFE9; pointer-events:none;
-        animation: enterFadeOut 0.55s ease-out 0.05s both;
-    }
-    @keyframes enterFadeOut { from{opacity:1} to{opacity:0} }
+        animation: fo{_fid} 1.1s ease-out 0s both;
+    }}
+    @keyframes fo{_fid} {{ from{{opacity:1}} to{{opacity:0}} }}
     </style>
-    <div id="enter-fade"></div>
+    <div id="ef{_fid}"></div>
     """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
