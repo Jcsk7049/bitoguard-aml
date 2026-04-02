@@ -73,11 +73,6 @@ html, body, [class*="css"], * {
 }
 .stApp {
     background-color: #F2EFE9 !important;
-    animation: appFadeIn 0.45s ease-out both;
-}
-@keyframes appFadeIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
 }
 
 /* ── 主內容容器：限寬 + 左右留白，避免撐滿螢幕 ─────────────────────── */
@@ -839,9 +834,24 @@ if not st.session_state["entered"]:
     # 全螢幕透明按鈕：點擊任何地方都會觸發
     if st.button(" "):
         st.session_state["entered"] = True
+        st.session_state["show_fade"] = True
         st.rerun()
     st.stop()
 
+
+# ── 封面跳轉後淡出遮罩（只在進入後第一次渲染時注入新 DOM 元素）────────────────
+if st.session_state.pop("show_fade", False):
+    st.markdown("""
+    <style>
+    #enter-fade {
+        position:fixed; inset:0; z-index:9990;
+        background:#F2EFE9; pointer-events:none;
+        animation: enterFadeOut 0.55s ease-out 0.05s both;
+    }
+    @keyframes enterFadeOut { from{opacity:1} to{opacity:0} }
+    </style>
+    <div id="enter-fade"></div>
+    """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Sidebar
