@@ -705,76 +705,118 @@ if "entered" not in st.session_state:
     st.session_state["entered"] = False
 
 if not st.session_state["entered"]:
+    # 隱藏 sidebar / header
     st.markdown("""
     <style>
-    [data-testid="stSidebar"]{ display:none !important; }
-    header, footer { display:none !important; }
-    .cover-wrap {
-        display:flex; flex-direction:column; align-items:center;
-        justify-content:center; min-height:88vh; text-align:center;
-        gap:0;
+    [data-testid="stSidebar"], header, footer,
+    [data-testid="stToolbar"], [data-testid="stDecoration"] {
+        display:none !important;
     }
-    .cover-logo { font-size:96px; margin-bottom:12px; line-height:1; }
+    .block-container { padding:0 !important; max-width:100% !important; }
+    #cover-overlay {
+        position:fixed; inset:0; z-index:9999;
+        background: linear-gradient(160deg,#0d1b2a 0%,#1a3a2a 50%,#0d1b2a 100%);
+        display:flex; flex-direction:column;
+        align-items:center; justify-content:center;
+        cursor:pointer;
+        transition: transform 0.75s cubic-bezier(0.77,0,0.18,1);
+    }
+    #cover-overlay.slide-up {
+        transform: translateY(-100%);
+    }
     .cover-title {
-        font-size:clamp(28px,5vw,58px); font-weight:800;
-        background: linear-gradient(135deg,#2d6a4f,#1e3a5f,#4a1a6e);
-        -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-        margin:0 0 10px;
+        font-size: clamp(36px,6vw,72px);
+        font-weight:900; letter-spacing:2px;
+        color:#ffffff;
+        margin:0 0 8px;
+        text-shadow: 0 2px 40px rgba(100,200,150,0.3);
     }
+    .cover-title span { color:#4ecca3; }
     .cover-sub {
-        font-size:clamp(14px,2vw,20px); color:#888; margin-bottom:36px;
-        letter-spacing:1.5px;
+        font-size:clamp(12px,1.5vw,16px);
+        color:rgba(255,255,255,0.45);
+        letter-spacing:4px; margin-bottom:52px;
+        text-transform:uppercase;
     }
-    .cover-badge {
-        display:inline-flex; gap:14px; flex-wrap:wrap; justify-content:center;
-        margin-bottom:40px;
+    .cover-badges {
+        display:flex; gap:12px; flex-wrap:wrap;
+        justify-content:center; margin-bottom:64px;
     }
-    .badge {
-        background:rgba(45,106,79,0.10); border:1px solid rgba(45,106,79,0.25);
-        border-radius:20px; padding:6px 16px; font-size:13px; color:#2d6a4f;
-        font-weight:600;
+    .cbadge {
+        border:1px solid rgba(78,204,163,0.35);
+        background:rgba(78,204,163,0.08);
+        color:rgba(78,204,163,0.85);
+        border-radius:999px; padding:5px 18px;
+        font-size:12px; font-weight:600; letter-spacing:0.5px;
     }
-    .cover-enter-btn {
-        display:inline-block;
-        background:linear-gradient(135deg,#2d6a4f,#1e3a5f);
-        color:white !important; font-size:18px; font-weight:700;
-        padding:16px 52px; border-radius:50px;
-        box-shadow:0 8px 32px rgba(30,58,95,0.35);
-        cursor:pointer; border:none; letter-spacing:1px;
-        transition:transform 0.15s, box-shadow 0.15s;
-        text-decoration:none;
+    .cover-hint {
+        position:absolute; bottom:36px;
+        display:flex; flex-direction:column; align-items:center; gap:6px;
+        color:rgba(255,255,255,0.3); font-size:12px; letter-spacing:2px;
     }
-    .cover-enter-btn:hover {
-        transform:translateY(-2px);
-        box-shadow:0 12px 40px rgba(30,58,95,0.45);
+    .hint-arrow {
+        width:22px; height:22px;
+        border-right:2px solid rgba(78,204,163,0.5);
+        border-top:2px solid rgba(78,204,163,0.5);
+        transform:rotate(-45deg);
+        animation: bounce 1.4s ease-in-out infinite;
     }
-    .cover-footer {
-        position:fixed; bottom:18px; width:100%; text-align:center;
-        font-size:12px; color:#bbb; letter-spacing:0.5px;
+    @keyframes bounce {
+        0%,100%{ transform:translateY(0) rotate(-45deg); opacity:.4; }
+        50%    { transform:translateY(-7px) rotate(-45deg); opacity:1; }
+    }
+    .cover-line {
+        width:60px; height:2px;
+        background:linear-gradient(90deg,transparent,#4ecca3,transparent);
+        margin:18px 0;
     }
     </style>
     """, unsafe_allow_html=True)
 
+    # 封面 HTML + JS：點任意處 → slide-up → 觸發隱藏 Streamlit 按鈕
     st.markdown("""
-    <div class="cover-wrap">
-        <div class="cover-logo">🛡️</div>
-        <div class="cover-title">BitoGuard AML</div>
-        <div class="cover-sub">ANTI-MONEY LAUNDERING INTELLIGENCE SYSTEM</div>
-        <div class="cover-badge">
-            <span class="badge">⚡ LightGBM 模型</span>
-            <span class="badge">📊 5-Fold 交叉驗證</span>
-            <span class="badge">🔍 12,753 用戶預測</span>
-            <span class="badge">🏆 BitoPro Hackathon 2026</span>
+    <div id="cover-overlay" onclick="triggerEnter()">
+        <div class="cover-title">Bito<span>Guard</span> AML</div>
+        <div class="cover-sub">Anti-Money Laundering Intelligence System</div>
+        <div class="cover-line"></div>
+        <div class="cover-badges">
+            <span class="cbadge">LightGBM</span>
+            <span class="cbadge">5-Fold CV</span>
+            <span class="cbadge">AUC 81.8%</span>
+            <span class="cbadge">12,753 Users</span>
+            <span class="cbadge">BitoPro Hackathon 2026</span>
+        </div>
+        <div class="cover-hint">
+            <span>CLICK ANYWHERE</span>
+            <div class="hint-arrow"></div>
         </div>
     </div>
-    <div class="cover-footer">BitoPro × AWS Hackathon 2026 — BitoGuard Team</div>
+
+    <script>
+    function triggerEnter() {
+        var overlay = document.getElementById('cover-overlay');
+        overlay.classList.add('slide-up');
+        setTimeout(function() {
+            var btns = window.parent.document.querySelectorAll('button');
+            for (var i = 0; i < btns.length; i++) {
+                if (btns[i].innerText.trim() === '__enter__') {
+                    btns[i].click();
+                    break;
+                }
+            }
+        }, 650);
+    }
+    </script>
     """, unsafe_allow_html=True)
 
-    col_l, col_c, col_r = st.columns([2, 1, 2])
-    with col_c:
-        if st.button("▶  進入系統", use_container_width=True, type="primary"):
-            st.session_state["entered"] = True
-            st.rerun()
+    # 隱藏觸發按鈕（JS 點擊它來通知 Python）
+    st.markdown("""
+    <style>
+    div[data-testid="stButton"]:last-child { visibility:hidden; height:0; overflow:hidden; }
+    </style>""", unsafe_allow_html=True)
+    if st.button("__enter__"):
+        st.session_state["entered"] = True
+        st.rerun()
     st.stop()
 
 
