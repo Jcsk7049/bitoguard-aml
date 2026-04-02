@@ -705,7 +705,7 @@ if "entered" not in st.session_state:
     st.session_state["entered"] = False
 
 if not st.session_state["entered"]:
-    # 隱藏 sidebar / header
+    # 隱藏 sidebar / header，並將按鈕撐滿整個視窗
     st.markdown("""
     <style>
     [data-testid="stSidebar"], header, footer,
@@ -713,17 +713,14 @@ if not st.session_state["entered"]:
         display:none !important;
     }
     .block-container { padding:0 !important; max-width:100% !important; }
-    #cover-overlay {
-        position:fixed; inset:0; z-index:9999;
+
+    /* 封面背景（指標內容，pointer-events:none 讓點擊穿透到按鈕）*/
+    #cover-bg {
+        position:fixed; inset:0; z-index:99;
         background: linear-gradient(160deg, #EDE8DF 0%, #F5F2EE 45%, #E4DDD3 100%);
         display:flex; flex-direction:column;
         align-items:center; justify-content:center;
-        cursor:pointer;
-        transition: transform 0.75s cubic-bezier(0.77,0,0.18,1);
-        user-select:none;
-    }
-    #cover-overlay.slide-up {
-        transform: translateY(-100%);
+        pointer-events:none; user-select:none;
     }
     .cover-eyebrow {
         font-size:11px; letter-spacing:5px; text-transform:uppercase;
@@ -732,15 +729,12 @@ if not st.session_state["entered"]:
     .cover-title {
         font-size: clamp(42px,7vw,88px);
         font-weight:900; letter-spacing:-1px;
-        color:#1E1A16;
-        margin:0 0 6px;
-        line-height:1.05;
+        color:#1E1A16; margin:0 0 6px; line-height:1.05;
     }
     .cover-title span { color:#7A9B8A; }
     .cover-sub {
         font-size:clamp(11px,1.3vw,14px);
-        color:#B0A89E;
-        letter-spacing:3px; margin-bottom:48px;
+        color:#B0A89E; letter-spacing:3px; margin-bottom:48px;
         text-transform:uppercase;
     }
     .cover-divider {
@@ -753,9 +747,7 @@ if not st.session_state["entered"]:
         justify-content:center; margin-bottom:72px;
     }
     .cbadge {
-        border:1px solid #D8D2C8;
-        background:#FFFFFF;
-        color:#8E735B;
+        border:1px solid #D8D2C8; background:#FFFFFF; color:#8E735B;
         border-radius:999px; padding:5px 16px;
         font-size:11.5px; font-weight:600; letter-spacing:0.3px;
     }
@@ -767,8 +759,7 @@ if not st.session_state["entered"]:
     }
     .hint-arrow {
         width:20px; height:20px;
-        border-right:2px solid #B8AFA5;
-        border-bottom:2px solid #B8AFA5;
+        border-right:2px solid #B8AFA5; border-bottom:2px solid #B8AFA5;
         transform:rotate(45deg);
         animation: bounce 1.6s ease-in-out infinite;
     }
@@ -776,12 +767,34 @@ if not st.session_state["entered"]:
         0%,100%{ transform:translateY(0) rotate(45deg); opacity:.35; }
         50%    { transform:translateY(6px) rotate(45deg); opacity:.9; }
     }
+
+    /* 全螢幕透明按鈕：蓋在 z-index:100，無色無框 */
+    div[data-testid="stButton"] {
+        position:fixed !important; inset:0 !important; z-index:100 !important;
+        margin:0 !important; padding:0 !important;
+    }
+    div[data-testid="stButton"] > button {
+        width:100vw !important; height:100vh !important;
+        background:transparent !important;
+        border:none !important; box-shadow:none !important;
+        border-radius:0 !important;
+        color:transparent !important;
+        cursor:pointer !important;
+        margin:0 !important; padding:0 !important;
+    }
+    div[data-testid="stButton"] > button:hover,
+    div[data-testid="stButton"] > button:focus,
+    div[data-testid="stButton"] > button:active {
+        background:transparent !important;
+        border:none !important; box-shadow:none !important;
+        outline:none !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-    # 封面 HTML + JS：點任意處 → slide-up → 觸發隱藏 Streamlit 按鈕
+    # 封面背景內容（指標層，pointer-events:none）
     st.markdown("""
-    <div id="cover-overlay" onclick="triggerEnter()">
+    <div id="cover-bg">
         <div class="cover-eyebrow">BitoPro Hackathon 2026</div>
         <div class="cover-title">Bito<span>Guard</span></div>
         <div class="cover-sub">Anti-Money Laundering Intelligence</div>
@@ -797,52 +810,10 @@ if not st.session_state["entered"]:
             <div class="hint-arrow"></div>
         </div>
     </div>
-
-    <script>
-    (function() {
-        function triggerEnter() {
-            var overlay = document.getElementById('cover-overlay');
-            if (!overlay || overlay.classList.contains('slide-up')) return;
-            overlay.classList.add('slide-up');
-
-            setTimeout(function() {
-                // 嘗試在當前 document 找按鈕
-                function clickEnterBtn(doc) {
-                    var btns = doc.querySelectorAll('button');
-                    for (var i = 0; i < btns.length; i++) {
-                        var txt = (btns[i].innerText || btns[i].textContent || '').trim();
-                        if (txt === '__enter__') { btns[i].click(); return true; }
-                    }
-                    return false;
-                }
-                if (!clickEnterBtn(document)) {
-                    try { clickEnterBtn(window.parent.document); } catch(e) {}
-                }
-            }, 650);
-        }
-
-        // 點擊封面任意處
-        document.addEventListener('click', function(e) {
-            var overlay = document.getElementById('cover-overlay');
-            if (overlay && !overlay.classList.contains('slide-up')) {
-                triggerEnter();
-            }
-        });
-
-        window.triggerEnter = triggerEnter;
-    })();
-    </script>
     """, unsafe_allow_html=True)
 
-    # 隱藏觸發按鈕（JS 點擊它來通知 Python）
-    st.markdown("""
-    <style>
-    div[data-testid="stButton"]:last-child > button {
-        position:absolute; opacity:0; pointer-events:none;
-        width:1px; height:1px; overflow:hidden;
-    }
-    </style>""", unsafe_allow_html=True)
-    if st.button("__enter__"):
+    # 全螢幕透明按鈕：點擊任何地方都會觸發
+    if st.button(" "):
         st.session_state["entered"] = True
         st.rerun()
     st.stop()
