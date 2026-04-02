@@ -81,10 +81,22 @@ html, body, [class*="css"], * {
     max-width: 1200px !important;
 }
 
-/* ── Sidebar ────────────────────────────────────────────────────────── */
+/* ── Sidebar：固定展開，隱藏收納 / 展開按鈕 ─────────────────────────── */
 [data-testid="stSidebar"] {
     background-color: #EDE8DF !important;
     border-right: 1px solid #DDD8CE !important;
+    transform: none !important;
+    min-width: 240px !important;
+    visibility: visible !important;
+}
+/* 收納箭頭按鈕（sidebar 內的 collapse button） */
+[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapseButton"],
+/* 左上角浮出的展開按鈕（sidebar 收合後出現） */
+[data-testid="stSidebarCollapsedControl"],
+button[kind="header"],
+section[data-testid="stSidebar"] > div > div:first-child button {
+    display: none !important;
 }
 
 /* ── 強制清除 Material Icon 殘留文字 ──────────────────────────────────── */
