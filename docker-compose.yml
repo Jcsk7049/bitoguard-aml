@@ -1,0 +1,18 @@
+# 自架 Streamlit App + Cloudflare Tunnel
+# 用法:在 VM 上設好 .env(TUNNEL_TOKEN)後執行 `docker compose up -d`
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "8501"            # 僅對內網開放,外部一律走 Cloudflare Tunnel
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    # 公開網域 → http://app:8501 的對應,在 Cloudflare Zero Trust 後台設定
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      - app

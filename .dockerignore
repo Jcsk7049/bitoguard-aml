@@ -1,0 +1,15 @@
+# 自架 .git、虛擬環境、快取等不需進入映像
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+*.log
+.env
+*.env
+data/
+.devcontainer
+.kiro
+AWS 文件
+*.ipynb
