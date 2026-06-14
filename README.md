@@ -9,6 +9,57 @@
 
 ---
 
+## 🏗️ 系統架構
+
+```mermaid
+flowchart TD
+    subgraph SRC["① 資料來源"]
+        API["BitoPro API"]
+    end
+
+    subgraph ING["② 資料擷取"]
+        ING1["bito_api_ingester.py"]
+        ING2["ingest_to_s3.py"]
+        S3[("AWS S3")]
+        API --> ING1 --> ING2 --> S3
+    end
+
+    subgraph FEAT["③ 特徵工程 / 圖譜"]
+        FS["feature_store.py<br/>32 個特徵"]
+        GRAPH["athena_graph_hops.sql<br/>glue_graph_hops.py<br/>黑名單鄰居 / IP 共用"]
+        S3 --> FS
+        S3 --> GRAPH
+        GRAPH --> FS
+    end
+
+    subgraph MODEL["④ 模型訓練"]
+        LGB["lgb_pipeline.py<br/>LightGBM 0.60"]
+        XGB["train_xgboost_script.py<br/>XGBoost 0.40"]
+        ENS{{"加權集成"}}
+        FS --> LGB --> ENS
+        FS --> XGB --> ENS
+    end
+
+    subgraph OUT["⑤ 輸出 / 可解釋性"]
+        PRED["submission_with_prob.csv<br/>oof_predictions.csv"]
+        XAI["xai_bedrock.py<br/>SHAP + Bedrock 診斷"]
+        ENS --> PRED --> XAI
+    end
+
+    subgraph UI["⑥ 呈現"]
+        APP["app.py<br/>Streamlit 儀表板"]
+        PRED --> APP
+        XAI --> APP
+    end
+
+    APP --> USER(["風控人員"])
+```
+
+> 調度由 `main_pipeline.py` 串起 ②→⑤;`app.py` 為部署主程式,
+> 讀取 ⑤ 的結果檔即可獨立展示(無原始資料亦可運作)。
+
+---
+
 ## ✨ 功能特色
 
 - **端到端 Pipeline**:API 擷取 → 特徵工程 → 圖譜跳數 → 模型訓練 → 預測 → XAI 診斷
